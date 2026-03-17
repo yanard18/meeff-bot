@@ -56,7 +56,27 @@ class VisionService:
         if not self.is_app_open():
             return "NOT OPENED"
             
-        if self.is_swipe_mode():
+        # Collect all resource IDs currently on screen
+        res_ids = set()
+        for node in self.cached_tree.iter('node'):
+            res_id = node.attrib.get('resource-id', '')
+            if res_id:
+                res_ids.add(res_id.split('/')[-1])
+                
+        # Identify the page based on unique fingerprints
+        if 'action_layout' in res_ids or 'like_imageview' in res_ids:
             return "ACTIVE (Swipe Mode)"
+        if 'voice_bloom_imageview' in res_ids or 'vibe_meet_imageview' in res_ids:
+            return "ACTIVE (Find Page)"
+        if 'last_msg_textview' in res_ids or 'local_time_textview' in res_ids:
+            return "ACTIVE (Chat List)"
+        if 'plus_layout' in res_ids or 'ruby_count_textview' in res_ids:
+            return "ACTIVE (My Profile)"
+        if 'distance_seekbar' in res_ids:
+            return "ACTIVE (Search Filters)"
+        if 'option_imageview' in res_ids or 'no_result_title_textview' in res_ids:
+            return "ACTIVE (Like/Visitor Page)"
+        if 'refresh_layout' in res_ids:
+            return "ACTIVE (Today Page)"
             
         return "ACTIVE (Unknown Screen/Ad)"
