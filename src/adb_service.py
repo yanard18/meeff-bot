@@ -2,11 +2,21 @@ import subprocess
 import time
 import sys
 import os
+import json
 
 class AdbService:
     """The 'Hands' of the bot. Handles all raw communication with the Android device."""
     def __init__(self, package_name="com.noyesrun.meeff.kr"):
         self.package_name = package_name
+        self.config = self._load_config()
+
+    def _load_config(self):
+        try:
+            with open('config.json', 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[!] Error loading config.json: {e}. Using defaults.")
+            return {"timing": {"human_tap_hesitation_min": 0.5, "human_tap_hesitation_max": 1.5, "scroll_duration_min_ms": 300, "scroll_duration_max_ms": 800, "read_delay_after_scroll_min": 1.0, "read_delay_after_scroll_max": 2.5}}
 
     def run_command(self, command, check=True):
         """Runs a generic ADB command."""
@@ -78,7 +88,9 @@ class AdbService:
         x = random.randint(bounds["x_min"] + margin, bounds["x_max"] - margin)
         y = random.randint(bounds["y_min"] + margin, bounds["y_max"] - margin)
         
-        hesitation = random.uniform(0.5, 1.5)
+        t_min = self.config["timing"]["human_tap_hesitation_min"]
+        t_max = self.config["timing"]["human_tap_hesitation_max"]
+        hesitation = random.uniform(t_min, t_max)
         print(f"[AdbService] Human-like pause for {hesitation:.2f}s...")
         time.sleep(hesitation)
         
@@ -96,12 +108,17 @@ class AdbService:
         end_x = start_x + random.randint(-50, 50) # Slight curve in the swipe
         end_y = random.randint(600, 1000)
         
-        # Duration between 300ms (fast flick) and 800ms (slow read)
-        duration = random.randint(300, 800)
+        # Duration based on config
+        d_min = self.config["timing"]["scroll_duration_min_ms"]
+        d_max = self.config["timing"]["scroll_duration_max_ms"]
+        duration = random.randint(d_min, d_max)
         
         print(f"[AdbService] Scrolling down profile... ({duration}ms)")
         self.run_command(f"shell input swipe {start_x} {start_y} {end_x} {end_y} {duration}")
         
-        # Pause to "read" the newly revealed content
-        read_time = random.uniform(1.0, 2.5)
+        # Pause to "read" the newly revealed content based on config
+        r_min = self.config["timing"]["read_delay_after_scroll_min"]
+        r_max = self.config["timing"]["read_delay_after_scroll_max"]
+        read_time = random.uniform(r_min, r_max)
+        print(f"[AdbService] Reading new content for {read_time:.2f}s...")
         time.sleep(read_time)

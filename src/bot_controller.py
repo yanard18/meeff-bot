@@ -51,6 +51,17 @@ class BotController:
         """The main intelligent loop that acts based on the current app state."""
         self.verify_system()
         import random
+        import json
+        
+        try:
+            with open('config.json', 'r') as f:
+                config = json.load(f)
+        except Exception as e:
+            print(f"[!] Critical Error: Could not load config.json: {e}")
+            sys.exit(1)
+            
+        t_conf = config["timing"]
+        b_conf = config["behavior"]
         
         # Action Coordinates
         main_profile_photo = {"x_min": 100, "x_max": 900, "y_min": 500, "y_max": 1500} # Rough middle of screen
@@ -73,21 +84,24 @@ class BotController:
                 elif state == "ACTIVE (Swipe Mode)":
                     print("[*] Profile deck detected. Tapping photo to open detailed view...")
                     self.adb.human_tap(main_profile_photo, name="Profile Photo")
-                    # Short delay to let the detailed profile slide up
-                    time.sleep(1.5)
+                    
+                    # Short delay to let the detailed profile slide up based on config
+                    time.sleep(t_conf["delay_after_opening_profile"])
                     
                 elif state == "ACTIVE (Detailed Profile)":
                     print("[*] Reading detailed profile...")
                     
-                    # 1. Decide how many times to scroll (simulate different reading lengths)
-                    # We increased the weights to ensure it scrolls more often and further down
-                    scrolls = random.choices([1, 2, 3], weights=[30, 50, 20])[0]
-                    for i in range(scrolls):
-                        print(f"[*] Executing scroll {i+1} of {scrolls}...")
-                        self.adb.human_scroll_down()
+                    # 1. Decide how many times to scroll based on config weights
+                    scroll_weights = b_conf["scrolls_weights"]
+                    scrolls = random.choices([0, 1, 2, 3], weights=scroll_weights)[0]
+                    
+                    if scrolls > 0:
+                        for i in range(scrolls):
+                            print(f"[*] Executing scroll {i+1} of {scrolls}...")
+                            self.adb.human_scroll_down()
                         
-                    # 2. Final hesitation before making a decision
-                    read_time = random.uniform(1.0, 3.0)
+                    # 2. Final hesitation before making a decision based on config
+                    read_time = random.uniform(t_conf["thinking_before_like_min"], t_conf["thinking_before_like_max"])
                     print(f"[*] Thinking for {read_time:.2f}s...")
                     time.sleep(read_time)
                     
@@ -98,8 +112,8 @@ class BotController:
                     else:
                         print("[!] Failed to tap Like.")
                     
-                    # Wait for the next profile to load after liking
-                    post_swipe_delay = random.uniform(2.0, 4.0)
+                    # Wait for the next profile to load after liking based on config
+                    post_swipe_delay = random.uniform(t_conf["delay_after_like_min"], t_conf["delay_after_like_max"])
                     print(f"[*] Waiting {post_swipe_delay:.2f}s before next action...\n")
                     time.sleep(post_swipe_delay)
                     
