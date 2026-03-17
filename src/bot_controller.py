@@ -10,18 +10,22 @@ class BotController:
         self.adb = AdbService()
         self.vision = VisionService(self.adb)
 
-    def verify_system(self):
-        print("[*] Checking system and device...")
-        if not self.adb.is_device_connected():
-            print("[!] No device connected. Exiting.")
-            sys.exit(1)
-            
-        if not self.adb.is_device_awake():
-            print("[!] Device is asleep. Please wake it up. Exiting.")
-            sys.exit(1)
-            
-        print("[+] System checks passed.")
-
+        def verify_system(self):
+            print("[*] Checking system and device...")
+            if not self.adb.is_device_connected():
+                print("[!] No device connected. Exiting.")
+                sys.exit(1)
+                
+            if not self.adb.is_device_awake():
+                print("[!] Device is asleep. Please wake it up. Exiting.")
+                sys.exit(1)
+    
+            # New logic: Check for lockscreen
+            while self.adb.is_screen_locked():
+                print("[!] Device is LOCKED. Please unlock the screen to proceed...")
+                time.sleep(5)
+                
+            print("[+] System checks passed.")
     def run_state_printer(self):
         """A simple loop to constantly print the current app state."""
         self.verify_system()

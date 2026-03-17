@@ -27,6 +27,25 @@ class AdbService:
         power_output = self.run_command('shell dumpsys power', check=False)
         return power_output and "mWakefulness=Asleep" not in power_output
 
+    def is_screen_locked(self):
+        """Checks if the device is currently at the lockscreen/keyguard."""
+        # On modern Android (especially Xiaomi/Redmi), checking mDreamingLockscreen or mShowingLockscreen
+        # in the window dump is the most reliable way.
+        window_output = self.run_command('shell dumpsys window', check=False)
+        if not window_output:
+            return False
+        
+        # Look for common lockscreen indicators
+        if "mDreamingLockscreen=true" in window_output or "mShowingLockscreen=true" in window_output:
+            return True
+            
+        # Fallback for some versions: check if the keyguard is showing
+        keyguard_output = self.run_command('shell dumpsys keyguard', check=False)
+        if keyguard_output and "mShowing=true" in keyguard_output:
+            return True
+            
+        return False
+
     def launch_app(self, wait_time=8):
         print(f"[AdbService] Launching {self.package_name}...")
         self.run_command(f"shell monkey -p {self.package_name} -c android.intent.category.LAUNCHER 1")
