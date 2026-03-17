@@ -52,3 +52,17 @@ class AdbService:
 
     def tap(self, x, y):
         self.run_command(f"shell input tap {x} {y}")
+
+    def human_tap(self, bounds, margin=20, name="button"):
+        """Generalized method to tap any button with human-like evasion."""
+        import random
+        x = random.randint(bounds["x_min"] + margin, bounds["x_max"] - margin)
+        y = random.randint(bounds["y_min"] + margin, bounds["y_max"] - margin)
+        
+        hesitation = random.uniform(0.5, 1.5)
+        print(f"[AdbService] Human-like pause for {hesitation:.2f}s...")
+        time.sleep(hesitation)
+        
+        print(f"[AdbService] Tapping '{name}' at randomized coordinates: ({x}, {y})")
+        result = self.run_command(f"shell input tap {x} {y}")
+        return result is not None
