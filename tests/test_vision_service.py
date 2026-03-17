@@ -70,5 +70,11 @@ class TestVisionService(unittest.TestCase):
         vision = VisionService(adb)
         self.assertEqual(vision.determine_app_state(), "ACTIVE (Today Page)")
 
+    def test_detailed_profile_detection(self):
+        xml_content = self.load_xml("detailed_profile.xml")
+        adb = MockAdbService(xml_content)
+        vision = VisionService(adb)
+        self.assertEqual(vision.determine_app_state(), "ACTIVE (Detailed Profile)")
+
 if __name__ == "__main__":
     unittest.main()

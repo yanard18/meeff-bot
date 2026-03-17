@@ -64,6 +64,8 @@ class VisionService:
                 res_ids.add(res_id.split('/')[-1])
                 
         # Identify the page based on unique fingerprints
+        if 'force_open_imageview' in res_ids or 'answer_layout' in res_ids:
+            return "ACTIVE (Detailed Profile)"
         if 'action_layout' in res_ids or 'like_imageview' in res_ids:
             return "ACTIVE (Swipe Mode)"
         if 'voice_bloom_imageview' in res_ids or 'vibe_meet_imageview' in res_ids:

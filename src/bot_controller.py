@@ -50,9 +50,11 @@ class BotController:
     def run(self):
         """The main intelligent loop that acts based on the current app state."""
         self.verify_system()
+        import random
         
-        # Like button coordinates extracted from previous UI dump
-        like_button_bounds = {"x_min": 554, "x_max": 734, "y_min": 1772, "y_max": 1952}
+        # Action Coordinates
+        main_profile_photo = {"x_min": 100, "x_max": 900, "y_min": 500, "y_max": 1500} # Rough middle of screen
+        detailed_like_button = {"x_min": 557, "x_max": 760, "y_min": 1969, "y_max": 2172}
         
         print("\n" + "="*40)
         print("    Meeff Smart Auto-Swiper Started")
@@ -67,19 +69,38 @@ class BotController:
                 if state == "NOT OPENED":
                     print("[*] App is not open. Launching...")
                     self.adb.launch_app(wait_time=10)
+                    
                 elif state == "ACTIVE (Swipe Mode)":
-                    print("[*] Profile detected. Executing 'Like'...")
-                    success = self.adb.human_tap(like_button_bounds, name="Like")
+                    print("[*] Profile deck detected. Tapping photo to open detailed view...")
+                    self.adb.human_tap(main_profile_photo, name="Profile Photo")
+                    # Short delay to let the detailed profile slide up
+                    time.sleep(1.5)
+                    
+                elif state == "ACTIVE (Detailed Profile)":
+                    print("[*] Reading detailed profile...")
+                    
+                    # 1. Decide how many times to scroll (simulate different reading lengths)
+                    scrolls = random.choices([0, 1, 2], weights=[20, 60, 20])[0]
+                    for _ in range(scrolls):
+                        self.adb.human_scroll_down()
+                        
+                    # 2. Final hesitation before making a decision
+                    read_time = random.uniform(1.0, 3.0)
+                    print(f"[*] Thinking for {read_time:.2f}s...")
+                    time.sleep(read_time)
+                    
+                    # 3. Tap the Like button
+                    success = self.adb.human_tap(detailed_like_button, name="Detailed Like")
                     if success:
                         print("[+] Successfully liked profile.")
                     else:
                         print("[!] Failed to tap Like.")
                     
-                    # Wait a bit after swiping before the next check to simulate human pacing
-                    import random
-                    post_swipe_delay = random.uniform(1.5, 3.5)
+                    # Wait for the next profile to load after liking
+                    post_swipe_delay = random.uniform(2.0, 4.0)
                     print(f"[*] Waiting {post_swipe_delay:.2f}s before next action...\n")
                     time.sleep(post_swipe_delay)
+                    
                 else:
                     # Unknown state (like an ad or chat screen). Just wait and check again.
                     print("[*] Unknown screen or Ad detected. Waiting...")

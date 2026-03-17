@@ -85,3 +85,23 @@ class AdbService:
         print(f"[AdbService] Tapping '{name}' at randomized coordinates: ({x}, {y})")
         result = self.run_command(f"shell input tap {x} {y}")
         return result is not None
+
+    def human_scroll_down(self):
+        """Simulates a natural human scroll down the page."""
+        import random
+        # Screen resolution is ~1080x2400. 
+        # Start scroll somewhere in the bottom half, swipe up to the top half
+        start_x = random.randint(400, 700)
+        start_y = random.randint(1600, 2000)
+        end_x = start_x + random.randint(-50, 50) # Slight curve in the swipe
+        end_y = random.randint(600, 1000)
+        
+        # Duration between 300ms (fast flick) and 800ms (slow read)
+        duration = random.randint(300, 800)
+        
+        print(f"[AdbService] Scrolling down profile... ({duration}ms)")
+        self.run_command(f"shell input swipe {start_x} {start_y} {end_x} {end_y} {duration}")
+        
+        # Pause to "read" the newly revealed content
+        read_time = random.uniform(1.0, 2.5)
+        time.sleep(read_time)
