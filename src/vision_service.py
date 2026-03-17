@@ -25,7 +25,7 @@ class VisionService:
 
     def is_app_open(self):
         """Checks if the Meeff app package is currently rendering on screen."""
-        if not self.cached_tree:
+        if self.cached_tree is None:
             return False
             
         # If any node belongs to the Meeff package, the app is open
@@ -36,7 +36,7 @@ class VisionService:
 
     def is_swipe_mode(self):
         """Checks if the app is currently in the swipe/discovery mode."""
-        if not self.cached_tree:
+        if self.cached_tree is None:
             return False
             
         # In the previous dump, we found a button called 'like_imageview' in swipe mode.
