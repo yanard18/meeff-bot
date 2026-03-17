@@ -80,8 +80,10 @@ class BotController:
                     print("[*] Reading detailed profile...")
                     
                     # 1. Decide how many times to scroll (simulate different reading lengths)
-                    scrolls = random.choices([0, 1, 2], weights=[20, 60, 20])[0]
-                    for _ in range(scrolls):
+                    # We increased the weights to ensure it scrolls more often and further down
+                    scrolls = random.choices([1, 2, 3], weights=[30, 50, 20])[0]
+                    for i in range(scrolls):
+                        print(f"[*] Executing scroll {i+1} of {scrolls}...")
                         self.adb.human_scroll_down()
                         
                     # 2. Final hesitation before making a decision
