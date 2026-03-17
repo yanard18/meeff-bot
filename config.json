@@ -14,5 +14,10 @@
     },
     "behavior": {
         "scrolls_weights": [5, 25, 40, 30]
+    },
+    "coordinates": {
+        "main_profile_photo":  {"x_min": 100, "x_max": 900, "y_min":  500, "y_max": 1500},
+        "detailed_like_button": {"x_min": 557, "x_max": 760, "y_min": 1969, "y_max": 2172},
+        "ad_close_button":      {"x_min": 956, "x_max": 1035, "y_min": 146, "y_max":  225}
     }
 }

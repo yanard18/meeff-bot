@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import re
 
 class VisionService:
     """The 'Eyes' of the bot. Analyzes the UI structure to determine state."""
@@ -34,18 +35,18 @@ class VisionService:
                 return True
         return False
 
-    def is_swipe_mode(self):
-        """Checks if the app is currently in the swipe/discovery mode."""
+    def get_node_bounds(self, resource_id_suffix):
+        """Returns the bounds dict of the first node whose resource-id ends with the given suffix."""
         if self.cached_tree is None:
-            return False
-            
-        # In the previous dump, we found a button called 'like_imageview' in swipe mode.
-        # This is a strong indicator we are looking at a profile.
+            return None
         for node in self.cached_tree.iter('node'):
-            res_id = node.attrib.get('resource-id', '')
-            if 'like_imageview' in res_id or 'nope_imageview' in res_id:
-                return True
-        return False
+            res_id = node.attrib.get('resource-id', '').split('/')[-1]
+            if res_id == resource_id_suffix:
+                m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.attrib.get('bounds', ''))
+                if m:
+                    return {"x_min": int(m.group(1)), "y_min": int(m.group(2)),
+                            "x_max": int(m.group(3)), "y_max": int(m.group(4))}
+        return None
 
     def determine_app_state(self):
         """High-level method to determine the overall app state."""
@@ -56,12 +57,29 @@ class VisionService:
         if not self.is_app_open():
             return "NOT OPENED"
             
-        # Collect all resource IDs currently on screen
+        # Collect all resource IDs and content descriptions currently on screen
         res_ids = set()
+        descs = set()
+        
         for node in self.cached_tree.iter('node'):
             res_id = node.attrib.get('resource-id', '')
+            desc = node.attrib.get('content-desc', '')
             if res_id:
                 res_ids.add(res_id.split('/')[-1])
+            if desc:
+                descs.add(desc)
+                
+        # Quit dialog can overlay any state — handle it first
+        if 'messageTextView' in res_ids and 'negativeButton' in res_ids:
+            return "ACTIVE (Quit Dialog)"
+
+        # WebView ad: has an explicit close button with a known content-desc
+        if 'Ad closed' in descs or 'Close ad' in descs:
+            return "ACTIVE (Ad)"
+
+        # Native ad: embedded ad container (note: app has a typo — "conatiner")
+        if 'native_ad_conatiner' in res_ids:
+            return "ACTIVE (Native Ad)"
                 
         # Identify the page based on unique fingerprints
         if 'force_open_imageview' in res_ids or 'answer_layout' in res_ids:

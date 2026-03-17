@@ -3,6 +3,7 @@ import time
 import sys
 import os
 import json
+import random
 
 class AdbService:
     """The 'Hands' of the bot. Handles all raw communication with the Android device."""
@@ -79,12 +80,15 @@ class AdbService:
             return content
         return None
 
+    def press_back(self):
+        """Presses the Android back button."""
+        self.run_command("shell input keyevent 4")
+
     def tap(self, x, y):
         self.run_command(f"shell input tap {x} {y}")
 
     def human_tap(self, bounds, margin=20, name="button"):
         """Generalized method to tap any button with human-like evasion."""
-        import random
         x = random.randint(bounds["x_min"] + margin, bounds["x_max"] - margin)
         y = random.randint(bounds["y_min"] + margin, bounds["y_max"] - margin)
         
@@ -100,8 +104,7 @@ class AdbService:
 
     def human_scroll_down(self):
         """Simulates a natural human scroll down the page."""
-        import random
-        # Screen resolution is ~1080x2400. 
+        # Screen resolution is ~1080x2400.
         # Start scroll somewhere in the bottom half, swipe up to the top half
         start_x = random.randint(400, 700)
         start_y = random.randint(1600, 2000)

@@ -1,5 +1,6 @@
 import time
 import sys
+import random
 from .adb_service import AdbService
 from .vision_service import VisionService
 
@@ -50,22 +51,12 @@ class BotController:
     def run(self):
         """The main intelligent loop that acts based on the current app state."""
         self.verify_system()
-        import random
-        import json
-        
-        try:
-            with open('config.json', 'r') as f:
-                config = json.load(f)
-        except Exception as e:
-            print(f"[!] Critical Error: Could not load config.json: {e}")
-            sys.exit(1)
-            
+        config = self.adb.config
         t_conf = config["timing"]
         b_conf = config["behavior"]
-        
-        # Action Coordinates
-        main_profile_photo = {"x_min": 100, "x_max": 900, "y_min": 500, "y_max": 1500} # Rough middle of screen
-        detailed_like_button = {"x_min": 557, "x_max": 760, "y_min": 1969, "y_max": 2172}
+        c_conf = config["coordinates"]
+        main_profile_photo = c_conf["main_profile_photo"]
+        detailed_like_button = c_conf["detailed_like_button"]
         
         print("\n" + "="*40)
         print("    Meeff Smart Auto-Swiper Started")
@@ -116,7 +107,26 @@ class BotController:
                     post_swipe_delay = random.uniform(t_conf["delay_after_like_min"], t_conf["delay_after_like_max"])
                     print(f"[*] Waiting {post_swipe_delay:.2f}s before next action...\n")
                     time.sleep(post_swipe_delay)
-                    
+
+                elif state == "ACTIVE (Ad)":
+                    print("[*] WebView ad detected! Closing via close button...")
+                    self.adb.human_tap(c_conf["ad_close_button"], margin=10, name="Ad Close Button")
+                    time.sleep(2)
+
+                elif state == "ACTIVE (Native Ad)":
+                    print("[*] Native ad detected! Pressing back to dismiss...")
+                    self.adb.press_back()
+                    time.sleep(2)
+
+                elif state == "ACTIVE (Quit Dialog)":
+                    print("[*] Quit dialog detected! Tapping Cancel...")
+                    cancel_bounds = self.vision.get_node_bounds("negativeButton")
+                    if cancel_bounds:
+                        self.adb.human_tap(cancel_bounds, name="Cancel (Quit Dialog)")
+                    else:
+                        self.adb.press_back()
+                    time.sleep(1)
+
                 else:
                     # Unknown state (like an ad or chat screen). Just wait and check again.
                     print("[*] Unknown screen or Ad detected. Waiting...")
