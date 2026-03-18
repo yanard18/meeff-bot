@@ -16,9 +16,9 @@
         "scrolls_weights": [5, 25, 40, 30]
     },
     "ai": {
-        "enabled": false,
+        "enabled": true,
         "model": "claude-opus-4-6",
-        "photo_score_threshold": 6.5,
+        "photo_score_threshold": 60,
         "chat_reply_enabled": false,
         "chat_reply_delay_min": 8.0,
         "chat_reply_delay_max": 20.0,

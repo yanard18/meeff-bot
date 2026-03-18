@@ -1,30 +1,40 @@
+import os
 import time
 import sys
 import random
 from .adb_service import AdbService
 from .vision_service import VisionService
+from .ai_service import AIService
 
 class BotController:
     """The central brain/loop that manages the bot's flow and services."""
-    
+
     def __init__(self):
         self.adb = AdbService()
         self.vision = VisionService(self.adb)
+        self.ai = AIService(self.adb.config.get("ai", {}))
 
     def _evaluate_profile(self, screenshot_path):
-        """Hook: decides whether to like the current profile.
+        """Scores the profile photo via AI and returns True (like) or False (skip).
 
-        Args:
-            screenshot_path: Path to the profile screenshot taken by AdbService.
-
-        Returns:
-            bool: True to like, False to skip.
-
-        Current behavior (Phase 0–2): always returns True.
-        Phase 3: will call self.ai.score_profile_photo(screenshot_path)
-                 and return score >= config["ai"]["photo_score_threshold"].
+        Falls back to True if AI is disabled, screenshot failed, or API errors.
+        Always cleans up the screenshot file after scoring.
         """
-        return True
+        ai_conf = self.adb.config.get("ai", {})
+        if not ai_conf.get("enabled", False) or not screenshot_path:
+            return True
+
+        try:
+            score = self.ai.score_profile_photo(screenshot_path)
+            threshold = ai_conf.get("photo_score_threshold", 60)
+            print(f"[AI] Photo score: {score:.0f}/100  (threshold: {threshold})")
+            return score >= threshold
+        except Exception as e:
+            print(f"[!] AI scoring failed: {e}. Defaulting to like.")
+            return True
+        finally:
+            if screenshot_path and os.path.exists(screenshot_path):
+                os.remove(screenshot_path)
 
     def _handle_active_chat(self):
         """Hook: handles an open individual chat screen.
@@ -109,9 +119,9 @@ class BotController:
                 elif state == "ACTIVE (Detailed Profile)":
                     print("[*] Reading detailed profile...")
 
-                    # 1. AI hook: evaluate the profile (photo scoring in Phase 3)
-                    #    For now, _evaluate_profile always returns True.
-                    screenshot_path = None  # Phase 1: will be set by take_screenshot()
+                    # 1. Capture profile photo and ask AI to score it
+                    photo_bounds = self.vision.get_node_bounds("force_open_imageview")
+                    screenshot_path = self.adb.take_screenshot(crop_bounds=photo_bounds)
                     should_like = self._evaluate_profile(screenshot_path)
 
                     if not should_like:

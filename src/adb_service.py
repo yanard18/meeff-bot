@@ -100,20 +100,45 @@ class AdbService:
         return result is not None
 
     def take_screenshot(self, crop_bounds=None):
-        """Captures the current screen and saves it locally.
+        """Captures the current screen via ADB and saves it as a PNG.
+
+        Uses `adb exec-out screencap -p` which pipes raw PNG bytes directly,
+        avoiding any temp file on the device.
 
         Args:
-            crop_bounds: Optional dict with x_min/y_min/x_max/y_max to crop
-                         the image to a specific region (e.g. the profile photo).
+            crop_bounds: Optional dict {x_min, y_min, x_max, y_max} to crop
+                         the image to a region (e.g. just the profile photo).
 
         Returns:
             str: Local file path to the saved PNG, or None on failure.
-
-        Implementation note (Phase 1):
-            adb exec-out screencap -p > screenshots/{timestamp}.png
-            If crop_bounds given, use Pillow to crop before returning.
         """
-        raise NotImplementedError("Phase 1: take_screenshot() not yet implemented.")
+        try:
+            result = subprocess.run(
+                ['adb', 'exec-out', 'screencap', '-p'],
+                capture_output=True, timeout=10
+            )
+            if result.returncode != 0 or not result.stdout:
+                print("[AdbService] Screenshot failed: empty response from device.")
+                return None
+
+            from PIL import Image
+            import io
+
+            img = Image.open(io.BytesIO(result.stdout))
+            if crop_bounds:
+                img = img.crop((
+                    crop_bounds['x_min'], crop_bounds['y_min'],
+                    crop_bounds['x_max'], crop_bounds['y_max']
+                ))
+
+            os.makedirs('screenshots', exist_ok=True)
+            path = f"screenshots/profile_{int(time.time())}.png"
+            img.save(path)
+            return path
+
+        except Exception as e:
+            print(f"[AdbService] Screenshot error: {e}")
+            return None
 
     def type_text(self, text):
         """Types a string into the currently focused input field.

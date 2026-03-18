@@ -1,4 +1,5 @@
 import os
+import base64
 
 
 class AIServiceError(Exception):
@@ -12,54 +13,81 @@ class AIService:
 
     Usage:
         ai = AIService(config["ai"])
-        score = ai.score_profile_photo("/tmp/shot_123.png")   # Phase 2
-        reply = ai.generate_chat_reply(messages, persona)     # Phase 5
+        score = ai.score_profile_photo("/tmp/shot_123.png")
+        reply = ai.generate_chat_reply(messages, persona)   # Phase 5
     """
 
     def __init__(self, ai_config):
-        """
-        Args:
-            ai_config: The "ai" block from config.json.
-        """
         self.config = ai_config
         self.model = ai_config["model"]
-        self._client = None  # Lazily initialized in Phase 2
+        self._client = None  # Lazily initialized on first use
 
     def _get_client(self):
-        """Returns an authenticated Anthropic client.
+        """Returns a cached, authenticated Anthropic client."""
+        if self._client is not None:
+            return self._client
 
-        Implementation note (Phase 2):
-            import anthropic
-            api_key = os.environ.get("ANTHROPIC_API_KEY")
-            if not api_key:
-                raise AIServiceError("ANTHROPIC_API_KEY environment variable not set.")
-            self._client = anthropic.Anthropic(api_key=api_key)
-        """
-        raise NotImplementedError("Phase 2: Anthropic client initialization not yet implemented.")
+        import anthropic
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise AIServiceError("ANTHROPIC_API_KEY environment variable not set.")
+        self._client = anthropic.Anthropic(api_key=api_key)
+        return self._client
 
     def score_profile_photo(self, screenshot_path):
-        """Scores a profile photo using Claude's vision capability.
+        """Rates the attractiveness of the person in a profile photo (0–100).
 
-        Sends the image to the model with a structured prompt asking for a
-        numerical attractiveness/quality score. Returns a float 0.0–10.0.
+        Sends the image to Claude Vision. Returns 0 if no face is visible.
 
         Args:
-            screenshot_path: Absolute path to a PNG/JPEG of the profile photo.
+            screenshot_path: Path to a PNG/JPEG of the profile photo.
 
         Returns:
-            float: Score from 0.0 (skip) to 10.0 (definitely like).
+            float: Score 0.0–100.0.
 
         Raises:
-            AIServiceError: If the API call fails or returns an unparseable response.
+            AIServiceError: If the API call fails or the response is unparseable.
             FileNotFoundError: If screenshot_path does not exist.
-
-        Implementation note (Phase 2):
-            1. Read image bytes and base64-encode.
-            2. Build a message with image + text prompt asking for a score.
-            3. Parse the integer/float from the model's response.
-            4. Return float(score).
         """
-        raise NotImplementedError("Phase 2: score_profile_photo() not yet implemented.")
+        if not os.path.exists(screenshot_path):
+            raise FileNotFoundError(f"Screenshot not found: {screenshot_path}")
+
+        with open(screenshot_path, 'rb') as f:
+            image_data = base64.standard_b64encode(f.read()).decode('utf-8')
+
+        client = self._get_client()
+        message = client.messages.create(
+            model=self.model,
+            max_tokens=10,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": image_data
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "Rate the physical attractiveness of the person in this photo "
+                            "from 0 to 100. If no face is clearly visible, return 0. "
+                            "Reply with only the number, nothing else."
+                        )
+                    }
+                ]
+            }]
+        )
+
+        raw = message.content[0].text.strip()
+        try:
+            score = float(raw)
+            return max(0.0, min(100.0, score))
+        except ValueError:
+            raise AIServiceError(f"Could not parse score from model response: '{raw}'")
 
     def generate_chat_reply(self, conversation, persona):
         """Generates a natural chat reply given the conversation history.
