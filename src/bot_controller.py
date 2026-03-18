@@ -44,15 +44,19 @@ class BotController:
             return True
         return self.critic.evaluate(screenshot_path).liked
 
+    def _tap_or_back(self, resource_id, name, delay=1):
+        """Tap a UI element by resource-id, falling back to press_back if not found."""
+        bounds = self.vision.get_node_bounds(resource_id)
+        if bounds:
+            self.adb.human_tap(bounds, name=name)
+        else:
+            self.adb.press_back()
+        time.sleep(delay)
+
     def _return_to_swipe(self):
         """Navigate back to the swipe/explore tab via the bottom nav."""
         self.vision.refresh_screen_data()
-        swipe_tab = self.vision.get_node_bounds("tab_explore")
-        if swipe_tab:
-            self.adb.human_tap(swipe_tab, name="Swipe Tab")
-        else:
-            self.adb.press_back()
-        time.sleep(2)
+        self._tap_or_back("tab_explore", "Swipe Tab", delay=2)
 
     def _handle_active_chat(self):
         """Hook: handles an open individual chat screen.
@@ -255,32 +259,17 @@ class BotController:
                 elif state == "ACTIVE (Match Complete)":
                     unknown_streak = 0
                     print("[*] Match complete screen! Closing...")
-                    close_btn = self.vision.get_node_bounds("top_left_imageview")
-                    if close_btn:
-                        self.adb.human_tap(close_btn, name="Close Match")
-                    else:
-                        self.adb.press_back()
-                    time.sleep(1)
+                    self._tap_or_back("top_left_imageview", "Close Match")
 
                 elif state == "ACTIVE (Suggest Meeff)":
                     unknown_streak = 0
                     print("[*] Suggest Meeff dialog detected. Dismissing...")
-                    dismiss_btn = self.vision.get_node_bounds("close_textview")
-                    if dismiss_btn:
-                        self.adb.human_tap(dismiss_btn, name="Next time, baby")
-                    else:
-                        self.adb.press_back()
-                    time.sleep(1)
+                    self._tap_or_back("close_textview", "Next time, baby")
 
                 elif state == "ACTIVE (Quit Dialog)":
                     unknown_streak = 0
                     print("[*] Quit dialog detected! Tapping Cancel...")
-                    cancel_bounds = self.vision.get_node_bounds("negativeButton")
-                    if cancel_bounds:
-                        self.adb.human_tap(cancel_bounds, name="Cancel (Quit Dialog)")
-                    else:
-                        self.adb.press_back()
-                    time.sleep(1)
+                    self._tap_or_back("negativeButton", "Cancel (Quit Dialog)")
 
                 else:
                     unknown_streak += 1

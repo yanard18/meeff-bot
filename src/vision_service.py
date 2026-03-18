@@ -35,17 +35,23 @@ class VisionService:
                 return True
         return False
 
-    def get_node_bounds(self, resource_id_suffix):
+    def _parse_bounds(self, node) -> dict | None:
+        """Parse an Android bounds string '[x1,y1][x2,y2]' into a dict."""
+        m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.attrib.get('bounds', ''))
+        if m:
+            return {"x_min": int(m.group(1)), "y_min": int(m.group(2)),
+                    "x_max": int(m.group(3)), "y_max": int(m.group(4))}
+        return None
+
+    def get_node_bounds(self, resource_id_suffix) -> dict | None:
         """Returns the bounds dict of the first node whose resource-id ends with the given suffix."""
         if self.cached_tree is None:
             return None
         for node in self.cached_tree.iter('node'):
-            res_id = node.attrib.get('resource-id', '').split('/')[-1]
-            if res_id == resource_id_suffix:
-                m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.attrib.get('bounds', ''))
-                if m:
-                    return {"x_min": int(m.group(1)), "y_min": int(m.group(2)),
-                            "x_max": int(m.group(3)), "y_max": int(m.group(4))}
+            if node.attrib.get('resource-id', '').split('/')[-1] == resource_id_suffix:
+                bounds = self._parse_bounds(node)
+                if bounds:
+                    return bounds
         return None
 
     def determine_app_state(self):
@@ -128,10 +134,9 @@ class VisionService:
             for child in node.iter('node'):
                 if (child.attrib.get('text') == 'Like' and
                         'title_textview' in child.attrib.get('resource-id', '')):
-                    m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.attrib.get('bounds', ''))
-                    if m and int(m.group(2)) < 300:  # must be in the tab-bar area
-                        return {"x_min": int(m.group(1)), "y_min": int(m.group(2)),
-                                "x_max": int(m.group(3)), "y_max": int(m.group(4))}
+                    bounds = self._parse_bounds(node)
+                    if bounds and bounds['y_min'] < 300:  # must be in the tab-bar area
+                        return bounds
         return None
 
     def get_first_liked_profile_bounds(self):
