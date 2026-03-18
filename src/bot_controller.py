@@ -5,6 +5,7 @@ import random
 from .adb_service import AdbService
 from .vision_service import VisionService
 from .ai_service import AIService
+from .critic import ProfileCritic
 
 class BotController:
     """The central brain/loop that manages the bot's flow and services."""
@@ -12,32 +13,21 @@ class BotController:
     def __init__(self):
         self.adb = AdbService()
         self.vision = VisionService(self.adb)
-        self.ai = AIService(self.adb.config.get("ai", {}))
+        ai_conf = self.adb.config.get("ai", {})
+        self.ai = AIService(ai_conf)
+        self.critic = ProfileCritic(
+            scorer=self.ai.score_profile_photo,
+            threshold=ai_conf.get("photo_score_threshold", 60),
+            rules=ai_conf.get("critic_rules", "Rate the attractiveness of the person 0-100. If no face is visible, score 0."),
+        )
 
     def _evaluate_profile(self, screenshot_path):
-        """Scores the profile photo via AI and returns True (like) or False (skip).
-
-        Falls back to True if AI is disabled, screenshot failed, or API errors.
-        Screenshots are kept on disk for inspection (not deleted).
-        """
+        """Returns True (like) or False (skip). Skips AI if disabled in config."""
         ai_conf = self.adb.config.get("ai", {})
         if not ai_conf.get("enabled", False):
             print("[AI] Scoring disabled in config. Defaulting to like.")
             return True
-        if not screenshot_path:
-            print("[AI] No screenshot available. Defaulting to like.")
-            return True
-
-        print(f"[AI] Sending to Claude: {screenshot_path}")
-        try:
-            score = self.ai.score_profile_photo(screenshot_path)
-            threshold = ai_conf.get("photo_score_threshold", 60)
-            decision = "LIKE" if score >= threshold else "SKIP"
-            print(f"[AI] Score: {score:.0f}/100  threshold: {threshold}  → {decision}")
-            return score >= threshold
-        except Exception as e:
-            print(f"[!] AI scoring failed: {e}. Defaulting to like.")
-            return True
+        return self.critic.evaluate(screenshot_path).liked
 
     def _handle_active_chat(self):
         """Hook: handles an open individual chat screen.

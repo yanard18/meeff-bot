@@ -34,21 +34,22 @@ class AIService:
         self._client = anthropic.Anthropic(api_key=api_key)
         return self._client
 
-    def score_profile_photo(self, screenshot_path):
-        """Rates the attractiveness of the person in a profile photo (0–100).
-
-        Sends the image to Claude Vision. Returns 0 if no face is visible.
+    def score_profile_photo(self, screenshot_path, rules):
+        """Scores the profile photo using the provided rules and returns (score, explanation).
 
         Args:
             screenshot_path: Path to a PNG/JPEG of the profile photo.
+            rules: Plain-text scoring criteria from the critic configuration.
 
         Returns:
-            float: Score 0.0–100.0.
+            tuple[float, str]: (score 0.0–100.0, one-sentence explanation)
 
         Raises:
             AIServiceError: If the API call fails or the response is unparseable.
             FileNotFoundError: If screenshot_path does not exist.
         """
+        import json as _json
+
         if not os.path.exists(screenshot_path):
             raise FileNotFoundError(f"Screenshot not found: {screenshot_path}")
 
@@ -58,10 +59,16 @@ class AIService:
         with open(screenshot_path, 'rb') as f:
             image_data = base64.standard_b64encode(f.read()).decode('utf-8')
 
+        prompt = (
+            f"{rules}\n\n"
+            'Respond with a single JSON object, nothing else: '
+            '{"score": <0-100>, "explanation": "<one sentence>"}'
+        )
+
         client = self._get_client()
         message = client.messages.create(
             model=self.model,
-            max_tokens=10,
+            max_tokens=100,
             messages=[{
                 "role": "user",
                 "content": [
@@ -73,24 +80,23 @@ class AIService:
                             "data": image_data
                         }
                     },
-                    {
-                        "type": "text",
-                        "text": (
-                            "Rate the physical attractiveness of the person in this photo "
-                            "from 0 to 100. If no face is clearly visible, return 0. "
-                            "Reply with only the number, nothing else."
-                        )
-                    }
+                    {"type": "text", "text": prompt}
                 ]
             }]
         )
 
         raw = message.content[0].text.strip()
+        # Strip markdown code fences if the model wraps its JSON response
+        if raw.startswith("```"):
+            lines = raw.splitlines()
+            raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:]).strip()
         try:
-            score = float(raw)
-            return max(0.0, min(100.0, score))
-        except ValueError:
-            raise AIServiceError(f"Could not parse score from model response: '{raw}'")
+            data = _json.loads(raw)
+            score = max(0.0, min(100.0, float(data["score"])))
+            explanation = str(data.get("explanation", ""))
+            return score, explanation
+        except (KeyError, ValueError, _json.JSONDecodeError):
+            raise AIServiceError(f"Could not parse critic response: '{raw}'")
 
     def generate_chat_reply(self, conversation, persona):
         """Generates a natural chat reply given the conversation history.
