@@ -4,3 +4,4 @@ __pycache__/
 temp_dump.xml
 screenshots/
 .pytest_cache/
+.env

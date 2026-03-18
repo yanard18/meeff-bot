@@ -25,8 +25,9 @@ class AdbService:
     def run_command(self, command, check=True):
         """Runs a generic ADB command."""
         try:
+            adb_path = os.environ.get("ADB_PATH", "adb")
             prefix = ['-s', self.device_serial] if self.device_serial else []
-            result = subprocess.run(['adb'] + prefix + command.split(), capture_output=True, text=True, check=check)
+            result = subprocess.run([adb_path] + prefix + command.split(), capture_output=True, text=True, check=check)
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
             # print(f"[AdbService] Error running command: {command}")
