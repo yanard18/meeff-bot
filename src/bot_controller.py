@@ -42,7 +42,8 @@ class BotController:
         label = "liked" if liked else "disliked"
         dest_dir = os.path.join("labeled_data", label)
         os.makedirs(dest_dir, exist_ok=True)
-        dest = os.path.join(dest_dir, f"{int(time.time())}.png")
+        ext = os.path.splitext(screenshot_path)[1] or ".jpg"
+        dest = os.path.join(dest_dir, f"{int(time.time())}{ext}")
         shutil.copy(screenshot_path, dest)
         print(f"[Data] Saved training sample → {dest}")
 

@@ -55,9 +55,9 @@ def close_image_viewers():
 
 
 def print_stats():
-    liked    = len(list(LIKED_DIR.glob("*.png")))    if LIKED_DIR.exists()    else 0
-    disliked = len(list(DISLIKED_DIR.glob("*.png"))) if DISLIKED_DIR.exists() else 0
-    unlabeled = len(list(UNLABELED_DIR.glob("*.png"))) if UNLABELED_DIR.exists() else 0
+    liked    = len(list(LIKED_DIR.glob("*.*")))    if LIKED_DIR.exists()    else 0
+    disliked = len(list(DISLIKED_DIR.glob("*.*"))) if DISLIKED_DIR.exists() else 0
+    unlabeled = len(list(UNLABELED_DIR.glob("*.*"))) if UNLABELED_DIR.exists() else 0
     total = liked + disliked
     print(f"\n  Dataset stats")
     print(f"  ─────────────────────")

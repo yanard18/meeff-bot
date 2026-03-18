@@ -40,8 +40,8 @@ def load_and_embed(model, preprocess, paths):
 
 
 def main():
-    liked_paths    = sorted(LIKED_DIR.glob("*.png"))
-    disliked_paths = sorted(DISLIKED_DIR.glob("*.png"))
+    liked_paths    = sorted(LIKED_DIR.glob("*.*"))
+    disliked_paths = sorted(DISLIKED_DIR.glob("*.*"))
 
     print(f"[*] Found {len(liked_paths)} liked, {len(disliked_paths)} disliked samples.")
 

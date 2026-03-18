@@ -17,7 +17,7 @@
     },
     "ai": {
         "enabled": true,
-        "critic_mode": "llm",
+        "critic_mode": "clip",
         "model": "claude-haiku-4-5-20251001",
         "chat_reply_enabled": false,
         "chat_reply_delay_min": 8.0,
