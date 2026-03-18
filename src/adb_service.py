@@ -103,11 +103,16 @@ class AdbService:
         result = self.run_command(f"shell input tap {x} {y}")
         return result is not None
 
+    def _is_emulator(self):
+        """Returns True if the target device is an Android emulator."""
+        return self.device_serial and self.device_serial.startswith("emulator-")
+
     def take_screenshot(self, crop_bounds=None):
         """Captures the current screen via ADB and saves it as a PNG.
 
-        Uses the pull method (screencap on device → adb pull) which is
-        more reliable than exec-out for binary data (avoids CRLF corruption).
+        On emulators uses `adb emu screenrecord screenshot` because screencap
+        writes 0 bytes when the emulator runs with -gpu host (hardware GPU).
+        On physical devices uses the standard screencap → pull pipeline.
 
         Args:
             crop_bounds: Optional dict {x_min, y_min, x_max, y_max} to crop
@@ -117,17 +122,19 @@ class AdbService:
             str: Local file path to the saved PNG, or None on failure.
         """
         os.makedirs('screenshots', exist_ok=True)
-        device_path = "/sdcard/_meeff_shot.png"
         raw_path = "screenshots/_raw.png"
 
         try:
             print("[AdbService] Taking screenshot...")
 
-            # Step 1: capture on device
-            self.run_command(f"shell screencap -p {device_path}", check=False)
-
-            # Step 2: pull to local disk
-            self.run_command(f"pull {device_path} {raw_path}", check=False)
+            if self._is_emulator():
+                # Emulator: use the emulator console command which works with -gpu host
+                self.run_command(f"emu screenrecord screenshot {raw_path}", check=False)
+            else:
+                # Physical device: screencap on device then pull
+                device_path = "/sdcard/_meeff_shot.png"
+                self.run_command(f"shell screencap -p {device_path}", check=False)
+                self.run_command(f"pull {device_path} {raw_path}", check=False)
 
             if not os.path.exists(raw_path) or os.path.getsize(raw_path) == 0:
                 print("[AdbService] Screenshot failed: file missing or empty after pull.")
