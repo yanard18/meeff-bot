@@ -16,40 +16,8 @@
         "scrolls_weights": [5, 25, 40, 30]
     },
     "ai": {
-        "enabled": true,
-        "critic_mode": "clip",
         "model": "claude-haiku-4-5-20251001",
-        "critic": {
-            "threshold": 60,
-            "clip_threshold": 0.6,
-            "disqualifiers": ["is_woman", "is_healthy_weight"],
-            "weights": {
-                "sexually_attractive":   25,
-                "submissive_looking":    20,
-                "cute":                  20,
-                "attractive_looking":    20,
-                "appears_young":         15,
-                "face_visible":          10,
-                "blonde":                 5,
-                "red_hair":               5,
-                "has_dog_or_cat_filter": -25,
-                "tongue_out_crazy_pose": -15
-            },
-            "questions": [
-                {"key": "is_woman",             "text": "Is the primary subject a woman or girl? Answer false if the subject is male, a child, an animal, an object, scenery, or if no person is present."},
-                {"key": "is_healthy_weight",    "text": "Does the person appear to have a healthy, non-overweight body weight based on visible proportions?"},
-                {"key": "sexually_attractive",  "text": "Does the person's pose, clothing, or expression suggest an intentionally alluring or flirtatious self-presentation?"},
-                {"key": "submissive_looking",   "text": "Does the person have a soft, gentle, or demure facial expression and body language rather than assertive or dominant?"},
-                {"key": "cute",                 "text": "Does the person have delicate, youthful facial features that could be described as cute or endearing?"},
-                {"key": "attractive_looking",   "text": "Does the person have symmetrical facial features and a well-proportioned overall appearance?"},
-                {"key": "appears_young",        "text": "Does the person appear to be under 30 years old?"},
-                {"key": "face_visible",         "text": "Is the person's face clearly visible and unobscured?"},
-                {"key": "blonde",               "text": "Does the person appear to have blonde or light-colored hair?"},
-                {"key": "red_hair",             "text": "Does the person appear to have red or auburn hair?"},
-                {"key": "has_dog_or_cat_filter","text": "Does the person have dog or cat ear filters, or similar animal face overlays applied in the photo?"},
-                {"key": "tongue_out_crazy_pose","text": "Is the person sticking their tongue out in an exaggerated or unusual way?"}
-            ]
-        }
+        "clip_threshold": 0.6
     },
     "device_serial": "emulator-5554",
     "coordinates": {
