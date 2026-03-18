@@ -7,6 +7,7 @@ from .adb_service import AdbService
 from .vision_service import VisionService
 from .ai_service import AIService
 from .critic import ProfileCritic
+from .clip_critic import ClipCritic
 
 class BotController:
     """The central brain/loop that manages the bot's flow and services."""
@@ -16,14 +17,23 @@ class BotController:
         self.vision = VisionService(self.adb)
         ai_conf = self.adb.config.get("ai", {})
         self.ai = AIService(ai_conf)
-        critic_conf = ai_conf.get("critic", {})
-        self.critic = ProfileCritic(
-            classifier=self.ai.classify_profile_photo,
-            questions=critic_conf.get("questions", []),
-            disqualifiers=critic_conf.get("disqualifiers", ["is_woman"]),
-            weights=critic_conf.get("weights", {}),
-            threshold=critic_conf.get("threshold", 60),
-        )
+
+        critic_mode = ai_conf.get("critic_mode", "llm")  # "llm" or "clip"
+
+        if critic_mode == "clip":
+            clip_threshold = ai_conf.get("critic", {}).get("clip_threshold", 0.6)
+            self.critic = ClipCritic(threshold=clip_threshold)
+            print(f"[Bot] Using CLIP critic (threshold={clip_threshold})")
+        else:
+            critic_conf = ai_conf.get("critic", {})
+            self.critic = ProfileCritic(
+                classifier=self.ai.classify_profile_photo,
+                questions=critic_conf.get("questions", []),
+                disqualifiers=critic_conf.get("disqualifiers", ["is_woman"]),
+                weights=critic_conf.get("weights", {}),
+                threshold=critic_conf.get("threshold", 60),
+            )
+            print("[Bot] Using LLM critic")
 
     def _save_training_sample(self, screenshot_path, liked):
         """Copies the screenshot into labeled_data/liked or labeled_data/disliked."""
