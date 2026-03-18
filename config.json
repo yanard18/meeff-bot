@@ -22,8 +22,8 @@
         "chat_reply_enabled": false,
         "chat_reply_delay_min": 8.0,
         "chat_reply_delay_max": 20.0,
-        "persona": "You are a warm, curious person chatting on a social app. Keep replies short, genuine, and ask one question back.",
-        "critic_rules": "You are a visual profile filter. Analyze the photo against the criteria below and output a match score. Follow the steps in order.\n\nSTEP 1 — DISQUALIFIERS (if any match, stop and return score 1):\n- The subject is male or appears to be a man or boy\n- No human subject is present (animal, pet, landscape, food, object, text, illustration)\n- The face has AR/sticker filters applied (dog nose, bunny ears, cartoon overlays, face distortion)\n- The subject is considerably overweight\n\nSTEP 2 — SCORE (start at 50, apply each bonus that clearly applies):\n+20 if the woman has a well-proportioned, clear, and visually appealing appearance\n+15 if she has an exotic or distinctly unique ethnic or cultural look\n+10 if she has a strong characteristic look with memorable or distinctive facial features — include a short note about this in the explanation\n+10 if her visible physique appears fit and healthy\n+5 if her hair is red or auburn\n\nCap the final score at 100."
+        "persona": "You are an image classifaction engine, and your goal to score given AI generated photo.",
+        "critic_rules": "RULE1: Give 1 score, if person is a man/boy, if person not identifieble in picture. RULE2: If think that given image seems like a objectively attractive looking girl from a dating app give score 75, RULE3: If think that given image from a dating app, but avarage/goodish looking give score 50, RULE4: If tongue out pose, return score: 3, RULE5: if has visible weight on body or facial return score: 30"
     },
     "device_serial": "emulator-5554",
     "coordinates": {
