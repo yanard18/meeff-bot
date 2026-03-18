@@ -106,15 +106,11 @@ def label_batch(photos, source_label=None):
                 break
 
             elif key == "n":
-                dest = DISLIKED_DIR / photo.name
                 if source_label == "disliked":
                     print("→ keep DISLIKED")
-                elif source_label == "liked":
-                    shutil.move(str(photo), DISLIKED_DIR / photo.name)
-                    print("→ moved to DISLIKED")
                 else:
-                    shutil.move(str(photo), dest)
-                    print("→ DISLIKED")
+                    shutil.move(str(photo), DISLIKED_DIR / photo.name)
+                    print("→ moved to DISLIKED" if source_label == "liked" else "→ DISLIKED")
                 break
 
             elif key == "s":
@@ -151,7 +147,9 @@ def main():
         return
 
     if args.folder:
-        photos = sorted(Path(args.folder).glob("*.png"))
+        folder = Path(args.folder)
+        photos = sorted(p for ext in ("*.jpg", "*.jpeg", "*.png", "*.webp")
+                        for p in folder.glob(ext))
         label_batch(photos)
         return
 

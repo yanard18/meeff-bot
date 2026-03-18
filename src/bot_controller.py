@@ -16,6 +16,7 @@ class BotController:
         self.vision = VisionService(self.adb)
         ai_conf = self.adb.config.get("ai", {})
         self.ai = AIService(ai_conf)
+        self.scoring_enabled = ai_conf.get("enabled", False)
         clip_threshold = ai_conf.get("clip_threshold", 0.6)
         self.critic = ClipCritic(threshold=clip_threshold)
         print(f"[Bot] Using CLIP critic (threshold={clip_threshold})")
@@ -34,8 +35,7 @@ class BotController:
 
     def _evaluate_profile(self, screenshot_path):
         """Returns True (like) or False (skip). Skips AI if disabled in config."""
-        ai_conf = self.adb.config.get("ai", {})
-        if not ai_conf.get("enabled", False):
+        if not self.scoring_enabled:
             print("[AI] Scoring disabled in config. Defaulting to like.")
             return True
         return self.critic.evaluate(screenshot_path).liked
