@@ -6,7 +6,7 @@ import random
 from .adb_service import AdbService
 from .vision_service import VisionService
 from .ai_service import AIService
-from .clip_critic import ClipCritic
+from clip_critic import ClipCritic
 
 class BotController:
     """The central brain/loop that manages the bot's flow and services."""
