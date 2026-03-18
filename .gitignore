@@ -5,3 +5,5 @@ temp_dump.xml
 screenshots/
 .pytest_cache/
 .env
+classifier.pkl
+labeled_data/
