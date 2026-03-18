@@ -1,5 +1,5 @@
-import xml.etree.ElementTree as ET
 import re
+import xml.etree.ElementTree as ET
 
 class VisionService:
     """The 'Eyes' of the bot. Analyzes the UI structure to determine state."""
@@ -69,9 +69,13 @@ class VisionService:
             if desc:
                 descs.add(desc)
                 
-        # Quit dialog can overlay any state — handle it first
+        # Dialogs that can overlay any state — handle first
         if 'messageTextView' in res_ids and 'negativeButton' in res_ids:
             return "ACTIVE (Quit Dialog)"
+        if 'md_root' in res_ids:
+            return "ACTIVE (Suggest Meeff)"
+        if 'target_photo_imageview' in res_ids:
+            return "ACTIVE (Match Complete)"
 
         # WebView ad: has an explicit close button with a known content-desc
         if 'Ad closed' in descs or 'Close ad' in descs:
@@ -103,3 +107,33 @@ class VisionService:
             return "ACTIVE (Today Page)"
             
         return "ACTIVE (Unknown Screen/Ad)"
+
+    def get_like_count(self) -> int:
+        """Returns the number of incoming likes shown on the Like tab page."""
+        if self.cached_tree is None:
+            return 0
+        for node in self.cached_tree.iter('node'):
+            m = re.match(r'^(\d+)\s+Friend', node.attrib.get('text', ''))
+            if m:
+                return int(m.group(1))
+        return 0
+
+    def get_like_inner_tab_bounds(self):
+        """Returns bounds of the 'Like' inner tab in the Chat section."""
+        if self.cached_tree is None:
+            return None
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('clickable') != 'true':
+                continue
+            for child in node.iter('node'):
+                if (child.attrib.get('text') == 'Like' and
+                        'title_textview' in child.attrib.get('resource-id', '')):
+                    m = re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.attrib.get('bounds', ''))
+                    if m and int(m.group(2)) < 300:  # must be in the tab-bar area
+                        return {"x_min": int(m.group(1)), "y_min": int(m.group(2)),
+                                "x_max": int(m.group(3)), "y_max": int(m.group(4))}
+        return None
+
+    def get_first_liked_profile_bounds(self):
+        """Returns bounds of the first profile thumbnail in the likes grid."""
+        return self.get_node_bounds('thumb_photo_imageview')

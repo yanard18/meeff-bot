@@ -19,7 +19,11 @@ class BotController:
         self.scoring_enabled = ai_conf.get("enabled", False)
         clip_threshold = ai_conf.get("clip_threshold", 0.6)
         self.critic = ClipCritic(threshold=clip_threshold)
+        likes_interval_mins = self.adb.config.get("likes_check_interval_minutes", 10)
+        self._like_check_interval_secs = likes_interval_mins * 60
+        self._last_like_check = 0.0  # 0 = check on first opportunity
         print(f"[Bot] Using CLIP critic (threshold={clip_threshold})")
+        print(f"[Bot] Incoming likes check: every {likes_interval_mins} min")
 
     def _save_training_sample(self, screenshot_path, liked):
         """Copies the screenshot into labeled_data/liked or labeled_data/disliked."""
@@ -40,6 +44,16 @@ class BotController:
             return True
         return self.critic.evaluate(screenshot_path).liked
 
+    def _return_to_swipe(self):
+        """Navigate back to the swipe/explore tab via the bottom nav."""
+        self.vision.refresh_screen_data()
+        swipe_tab = self.vision.get_node_bounds("tab_explore")
+        if swipe_tab:
+            self.adb.human_tap(swipe_tab, name="Swipe Tab")
+        else:
+            self.adb.press_back()
+        time.sleep(2)
+
     def _handle_active_chat(self):
         """Hook: handles an open individual chat screen.
 
@@ -57,7 +71,7 @@ class BotController:
         if not self.adb.is_device_connected():
             print("[!] No device connected. Exiting.")
             sys.exit(1)
-            
+
         if not self.adb.is_device_awake():
             print("[!] Device is asleep. Please wake it up. Exiting.")
             sys.exit(1)
@@ -72,7 +86,7 @@ class BotController:
     def run_state_printer(self):
         """A simple loop to constantly print the current app state."""
         self.verify_system()
-        
+
         print("\n" + "="*40)
         print("    Meeff State Tracker Started")
         print("    Press Ctrl+C to stop")
@@ -82,10 +96,10 @@ class BotController:
             while True:
                 state = self.vision.determine_app_state()
                 print(f"[State] {state}")
-                
+
                 # Wait 2 seconds before checking again to avoid overloading the phone
                 time.sleep(2)
-                
+
         except KeyboardInterrupt:
             print("\n[*] Stopping State Tracker...")
 
@@ -98,7 +112,7 @@ class BotController:
         c_conf = config["coordinates"]
         main_profile_photo = c_conf["main_profile_photo"]
         detailed_like_button = c_conf["detailed_like_button"]
-        
+
         print("\n" + "="*40)
         print("    Meeff Smart Auto-Swiper Started")
         print("    Press Ctrl+C to stop")
@@ -120,20 +134,32 @@ class BotController:
                         launch_attempts = 0
                     else:
                         print(f"[*] App is not open. Launching (attempt {launch_attempts}/3)...")
-                        self.adb.launch_app(wait_time=10)
+                        self.adb.safe_escape()
                     continue
-                    
+
                 else:
                     launch_attempts = 0
 
                 if state == "ACTIVE (Swipe Mode)":
                     unknown_streak = 0
+
+                    # Periodic incoming likes check: navigate to Chat/Likes section.
+                    # The state machine handles everything from there.
+                    if time.time() - self._last_like_check >= self._like_check_interval_secs:
+                        chat_tab = self.vision.get_node_bounds("tab_dashboard")
+                        if chat_tab:
+                            self._last_like_check = time.time()
+                            print("[Likes] Checking for incoming likes...")
+                            self.adb.human_tap(chat_tab, name="Chat Tab")
+                            time.sleep(1.5)
+                            continue
+
                     print("[*] Profile deck detected. Tapping photo to open detailed view...")
                     self.adb.human_tap(main_profile_photo, name="Profile Photo")
-                    
+
                     # Short delay to let the detailed profile slide up based on config
                     time.sleep(t_conf["delay_after_opening_profile"])
-                    
+
                 elif state == "ACTIVE (Detailed Profile)":
                     unknown_streak = 0
                     print("[*] Reading detailed profile...")
@@ -179,6 +205,37 @@ class BotController:
                     print(f"[*] Waiting {post_swipe_delay:.2f}s before next action...\n")
                     time.sleep(post_swipe_delay)
 
+                elif state == "ACTIVE (Chat List)":
+                    # We only land here during a periodic likes check.
+                    # Navigate to the Like inner tab.
+                    unknown_streak = 0
+                    print("[Likes] On chat list — navigating to Like tab...")
+                    like_tab = self.vision.get_like_inner_tab_bounds()
+                    if like_tab:
+                        self.adb.human_tap(like_tab, name="Like Tab")
+                        time.sleep(1.5)
+                    else:
+                        print("[Likes] Like tab not found — returning to swipe.")
+                        self._return_to_swipe()
+
+                elif state == "ACTIVE (Like/Visitor Page)":
+                    unknown_streak = 0
+                    count = self.vision.get_like_count()
+                    print(f"[Likes] {count} incoming like(s) pending.")
+
+                    if count > 0:
+                        profile = self.vision.get_first_liked_profile_bounds()
+                        if profile:
+                            print("[Likes] Opening first liked profile...")
+                            self.adb.human_tap(profile, name="Liked Profile")
+                            time.sleep(t_conf["delay_after_opening_profile"])
+                        else:
+                            print("[Likes] Profile thumbnail not found — returning to swipe.")
+                            self._return_to_swipe()
+                    else:
+                        print("[Likes] No more incoming likes. Returning to swipe.")
+                        self._return_to_swipe()
+
                 elif state == "ACTIVE (Chat With Person)":
                     unknown_streak = 0
                     self._handle_active_chat()
@@ -194,6 +251,26 @@ class BotController:
                     print("[*] Native ad detected! Pressing back to dismiss...")
                     self.adb.press_back()
                     time.sleep(2)
+
+                elif state == "ACTIVE (Match Complete)":
+                    unknown_streak = 0
+                    print("[*] Match complete screen! Closing...")
+                    close_btn = self.vision.get_node_bounds("top_left_imageview")
+                    if close_btn:
+                        self.adb.human_tap(close_btn, name="Close Match")
+                    else:
+                        self.adb.press_back()
+                    time.sleep(1)
+
+                elif state == "ACTIVE (Suggest Meeff)":
+                    unknown_streak = 0
+                    print("[*] Suggest Meeff dialog detected. Dismissing...")
+                    dismiss_btn = self.vision.get_node_bounds("close_textview")
+                    if dismiss_btn:
+                        self.adb.human_tap(dismiss_btn, name="Next time, baby")
+                    else:
+                        self.adb.press_back()
+                    time.sleep(1)
 
                 elif state == "ACTIVE (Quit Dialog)":
                     unknown_streak = 0
@@ -214,6 +291,6 @@ class BotController:
                         unknown_streak = 0
                     else:
                         time.sleep(3)
-                
+
         except KeyboardInterrupt:
             print("\n[*] Stopping Bot...")

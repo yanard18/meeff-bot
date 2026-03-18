@@ -20,6 +20,7 @@
         "model": "claude-haiku-4-5-20251001",
         "clip_threshold": 0.6
     },
+    "likes_check_interval_minutes": 1,
     "device_serial": "emulator-5554",
     "coordinates": {
         "main_profile_photo":   {"x_min":  53, "x_max": 1027, "y_min":  434, "y_max": 2105},
