@@ -119,14 +119,14 @@ class BotController:
                 elif state == "ACTIVE (Detailed Profile)":
                     print("[*] Reading detailed profile...")
 
-                    # 1. Capture profile photo and ask AI to score it
-                    photo_bounds = self.vision.get_node_bounds("force_open_imageview")
+                    # 1. Capture profile photo (photo_imageview = the large photo, not the tiny force_open button)
+                    photo_bounds = self.vision.get_node_bounds("photo_imageview")
                     screenshot_path = self.adb.take_screenshot(crop_bounds=photo_bounds)
                     should_like = self._evaluate_profile(screenshot_path)
 
                     if not should_like:
-                        print("[*] AI scored profile below threshold. Skipping...")
-                        self.adb.press_back()
+                        print("[*] AI scored profile below threshold. Tapping Nope...")
+                        self.adb.human_tap(c_conf["detailed_nope_button"], name="Nope")
                         time.sleep(1)
                         continue
 
