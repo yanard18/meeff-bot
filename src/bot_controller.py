@@ -100,16 +100,28 @@ class BotController:
         print("    Press Ctrl+C to stop")
         print("="*40 + "\n")
 
+        launch_attempts = 0
+
         try:
             while True:
                 state = self.vision.determine_app_state()
                 print(f"[State] {state}")
-                
+
                 if state == "NOT OPENED":
-                    print("[*] App is not open. Launching...")
-                    self.adb.launch_app(wait_time=10)
+                    launch_attempts += 1
+                    if launch_attempts > 3:
+                        print(f"[!] App failed to launch after {launch_attempts} attempts. Waiting 30s...")
+                        time.sleep(30)
+                        launch_attempts = 0
+                    else:
+                        print(f"[*] App is not open. Launching (attempt {launch_attempts}/3)...")
+                        self.adb.launch_app(wait_time=10)
+                    continue
                     
-                elif state == "ACTIVE (Swipe Mode)":
+                else:
+                    launch_attempts = 0
+
+                if state == "ACTIVE (Swipe Mode)":
                     print("[*] Profile deck detected. Tapping photo to open detailed view...")
                     self.adb.human_tap(main_profile_photo, name="Profile Photo")
                     
