@@ -76,5 +76,11 @@ class TestVisionService(unittest.TestCase):
         vision = VisionService(adb)
         self.assertEqual(vision.determine_app_state(), "ACTIVE (Detailed Profile)")
 
+    def test_chat_with_person_detection(self):
+        xml_content = self.load_xml("chat_with_person.xml")
+        adb = MockAdbService(xml_content)
+        vision = VisionService(adb)
+        self.assertEqual(vision.determine_app_state(), "ACTIVE (Chat With Person)")
+
 if __name__ == "__main__":
     unittest.main()
