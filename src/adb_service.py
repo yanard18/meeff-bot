@@ -207,21 +207,6 @@ class AdbService:
                 os.remove(raw_path)
             return None
 
-    def type_text(self, text):
-        """Types a string into the currently focused input field.
-
-        Args:
-            text: The string to type. Special characters will be escaped.
-
-        Returns:
-            bool: True on success, False on failure.
-
-        Implementation note (Phase 6):
-            adb shell input text "{escaped_text}"
-            Spaces must be escaped as %s for ADB input.
-        """
-        raise NotImplementedError("Phase 6: type_text() not yet implemented.")
-
     def human_scroll_down(self):
         """Simulates a natural human scroll down the page."""
         # Screen resolution is ~1080x2400.
