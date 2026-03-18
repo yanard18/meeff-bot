@@ -52,6 +52,9 @@ class AIService:
         if not os.path.exists(screenshot_path):
             raise FileNotFoundError(f"Screenshot not found: {screenshot_path}")
 
+        ext = os.path.splitext(screenshot_path)[1].lower()
+        media_type = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png"
+
         with open(screenshot_path, 'rb') as f:
             image_data = base64.standard_b64encode(f.read()).decode('utf-8')
 
@@ -66,7 +69,7 @@ class AIService:
                         "type": "image",
                         "source": {
                             "type": "base64",
-                            "media_type": "image/png",
+                            "media_type": media_type,
                             "data": image_data
                         }
                     },

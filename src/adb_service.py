@@ -172,9 +172,9 @@ class AdbService:
             else:
                 print("[AdbService] No crop bounds — using full screenshot.")
 
-            # Step 6: save final file
-            path = f"screenshots/profile_{int(time.time())}.png"
-            img.save(path)
+            # Step 6: convert to RGB and save as JPEG (smaller, API-compatible)
+            path = f"screenshots/profile_{int(time.time())}.jpg"
+            img.convert("RGB").save(path, "JPEG", quality=85)
             final_size_kb = os.path.getsize(path) / 1024
             print(f"[AdbService] Screenshot saved: {path} ({final_size_kb:.1f} KB)")
 
