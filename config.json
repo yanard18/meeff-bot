@@ -24,10 +24,11 @@
         "chat_reply_delay_max": 20.0,
         "persona": "You are a warm, curious person chatting on a social app. Keep replies short, genuine, and ask one question back."
     },
+    "device_serial": "emulator-5554",
     "coordinates": {
-        "main_profile_photo":  {"x_min": 100, "x_max": 900, "y_min":  500, "y_max": 1500},
-        "detailed_nope_button": {"x_min": 320, "x_max": 523, "y_min": 1969, "y_max": 2172},
-        "detailed_like_button": {"x_min": 557, "x_max": 760, "y_min": 1969, "y_max": 2172},
-        "ad_close_button":      {"x_min": 956, "x_max": 1035, "y_min": 146, "y_max":  225}
+        "main_profile_photo":   {"x_min":  53, "x_max": 1027, "y_min":  434, "y_max": 2105},
+        "detailed_nope_button": {"x_min": 334, "x_max":  523, "y_min": 2058, "y_max": 2247},
+        "detailed_like_button": {"x_min": 555, "x_max":  744, "y_min": 2058, "y_max": 2247},
+        "ad_close_button":      {"x_min": 956, "x_max": 1035, "y_min":  146, "y_max":  225}
     }
 }

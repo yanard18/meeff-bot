@@ -10,6 +10,9 @@ class AdbService:
     def __init__(self, package_name="com.noyesrun.meeff.kr"):
         self.package_name = package_name
         self.config = self._load_config()
+        self.device_serial = self.config.get("device_serial", None)
+        if self.device_serial:
+            print(f"[AdbService] Targeting device: {self.device_serial}")
 
     def _load_config(self):
         try:
@@ -22,7 +25,8 @@ class AdbService:
     def run_command(self, command, check=True):
         """Runs a generic ADB command."""
         try:
-            result = subprocess.run(['adb'] + command.split(), capture_output=True, text=True, check=check)
+            prefix = ['-s', self.device_serial] if self.device_serial else []
+            result = subprocess.run(['adb'] + prefix + command.split(), capture_output=True, text=True, check=check)
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
             # print(f"[AdbService] Error running command: {command}")
@@ -132,11 +136,24 @@ class AdbService:
             raw_size_kb = os.path.getsize(raw_path) / 1024
             print(f"[AdbService] Raw screenshot pulled: {raw_path} ({raw_size_kb:.1f} KB)")
 
-            # Step 3: open and optionally crop
-            from PIL import Image
+            # Step 3: open and force-load the full image into memory
+            from PIL import Image, ImageStat
             img = Image.open(raw_path)
+            img.load()  # force decode before closing/deleting the source file
             print(f"[AdbService] Image opened: {img.width}x{img.height}px, mode={img.mode}")
 
+            # Step 4: detect all-black on the FULL raw image (FLAG_SECURE check)
+            # Must happen before cropping — a loading photo placeholder can black-out
+            # only the photo region, but the full screen still has UI content.
+            stat = ImageStat.Stat(img.convert("RGB"))
+            if all(m < 2 for m in stat.mean):
+                print("[AdbService] Full screenshot is all black — FLAG_SECURE may still be active.")
+                os.remove(raw_path)
+                return None
+
+            os.remove(raw_path)  # raw fully loaded into memory, safe to delete now
+
+            # Step 5: crop to profile photo region if bounds provided
             if crop_bounds:
                 img = img.crop((
                     crop_bounds['x_min'], crop_bounds['y_min'],
@@ -148,25 +165,18 @@ class AdbService:
             else:
                 print("[AdbService] No crop bounds — using full screenshot.")
 
-            # Step 4: detect all-black image (FLAG_SECURE blocks ADB screenshots)
-            from PIL import ImageStat
-            stat = ImageStat.Stat(img.convert("RGB"))
-            if all(m < 2 for m in stat.mean):
-                print("[AdbService] Screenshot is all black — app has FLAG_SECURE. Cannot score photo.")
-                os.remove(raw_path)
-                return None
-
-            # Step 5: save final file
+            # Step 6: save final file
             path = f"screenshots/profile_{int(time.time())}.png"
             img.save(path)
             final_size_kb = os.path.getsize(path) / 1024
             print(f"[AdbService] Screenshot saved: {path} ({final_size_kb:.1f} KB)")
 
-            os.remove(raw_path)
             return path
 
         except Exception as e:
             print(f"[AdbService] Screenshot error: {e}")
+            if os.path.exists(raw_path):
+                os.remove(raw_path)
             return None
 
     def type_text(self, text):

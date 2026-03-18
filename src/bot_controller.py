@@ -65,7 +65,7 @@ class BotController:
         while self.adb.is_screen_locked():
             print("[!] Device is LOCKED. Please unlock the screen to proceed...")
             time.sleep(5)
-            
+
         print("[+] System checks passed.")
 
     def run_state_printer(self):

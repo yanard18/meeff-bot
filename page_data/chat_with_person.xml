@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<!--
+  PAGE: Individual Chat Screen (chat with a matched person)
+
+  VARIABLE elements (change per conversation):
+    - title_textview:   the other person's display name
+    - title_photo_imageview: their profile photo (no text, just image resource)
+    - date_textview:    date separator between messages (e.g. "May 14, 2025")
+    - message_textview: text content of each chat bubble
+    - read_textview:    unread count badge on sent messages (e.g. "1")
+    - time_textview:    timestamp on sent messages (e.g. "8:49")
+    - message_textview (system): system message like "[NAME] has opened the chat room."
+
+  STABLE structural resource IDs (reliable for state detection):
+    - top_layout
+    - back_imageview
+    - title_photo_imageview
+    - title_textview
+    - facetalk_imageview
+    - more_imageview
+    - top_banner_face_talk_layout
+    - top_banner_face_talk_close_view
+    - recyclerview
+    - bottom_line_view
+    - bottom_layout
+    - photo_add_imageview
+    - trans_imageview
+    - message_edittext
+    - send_imageview
+-->
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][1080,2400]">
+    <node index="0" text="" resource-id="" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][1080,2267]">
+      <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,90][1080,2267]">
+        <node index="0" text="" resource-id="com.noyesrun.meeff.kr:id/action_bar_root" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,90][1080,2267]">
+          <node index="0" text="" resource-id="android:id/content" class="android.widget.FrameLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,90][1080,2267]">
+            <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,90][1080,2267]">
+              <node index="0" text="" resource-id="" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,90][1080,2267]">
+
+                <!-- TOP BAR: back, profile photo, name, facetalk, more -->
+                <node index="0" text="" resource-id="com.noyesrun.meeff.kr:id/top_layout" class="android.widget.FrameLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,90][1080,259]">
+                  <node index="0" text="" resource-id="" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,90][1080,259]">
+                    <node NAF="true" index="0" text="" resource-id="com.noyesrun.meeff.kr:id/back_imageview" class="android.widget.ImageView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[34,124][135,225]" />
+                    <node NAF="true" index="1" text="" resource-id="com.noyesrun.meeff.kr:id/title_photo_imageview" class="android.widget.ImageView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[135,124][236,225]" />
+                    <node index="2" text="" resource-id="" class="android.widget.FrameLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[264,90][776,259]">
+                      <!-- VARIABLE: other person's display name -->
+                      <node index="0" text="[PERSON_NAME]" resource-id="com.noyesrun.meeff.kr:id/title_textview" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[264,90][444,259]" />
+                    </node>
+                    <node NAF="true" index="3" text="" resource-id="com.noyesrun.meeff.kr:id/facetalk_imageview" class="android.widget.ImageView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[810,124][911,225]" />
+                    <node NAF="true" index="4" text="" resource-id="com.noyesrun.meeff.kr:id/more_imageview" class="android.widget.ImageView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[945,124][1046,225]" />
+                  </node>
+                  <node index="1" text="" resource-id="com.noyesrun.meeff.kr:id/face_talk_icon_bg_view" class="android.view.View" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[734,107][987,259]" />
+                </node>
+
+                <!-- FACE TALK PROMO BANNER (dismissible, may or may not be present) -->
+                <node index="1" text="" resource-id="com.noyesrun.meeff.kr:id/top_banner_face_talk_layout" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="true" bounds="[0,259][1080,459]">
+                  <node index="0" text="" resource-id="" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="true" bounds="[56,304][979,414]">
+                    <node index="0" text="Have a face to face conversation via a video call." resource-id="" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="true" bounds="[56,304][979,357]" />
+                    <node index="1" text="Share your culture and interests with the other by speaking each other's language." resource-id="" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="true" bounds="[56,363][979,414]" />
+                  </node>
+                  <node NAF="true" index="1" text="" resource-id="com.noyesrun.meeff.kr:id/top_banner_face_talk_close_view" class="android.view.View" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="true" bounds="[979,304][1035,360]" />
+                </node>
+
+                <!-- MESSAGE LIST -->
+                <node index="2" text="" resource-id="" class="android.widget.RelativeLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,459][1080,2267]">
+                  <node index="0" text="" resource-id="com.noyesrun.meeff.kr:id/recyclerview" class="androidx.recyclerview.widget.RecyclerView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="true" focused="false" scrollable="true" long-clickable="false" password="false" selected="false" bounds="[0,459][1080,2098]">
+
+                    <!-- System/terms message block (always present, generic) -->
+                    <node index="0" text="" resource-id="" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,459][1080,1839]">
+                      <node index="0" text="Here in MEEFF, we always strive to ensure safe conversations for all our users.&#10;MEEFF does not provide other services aside from the app you&#8217;re using. Please beware of accounts impersonating the admin or promoting illegal websites.&#10;Initiating conversations containing obscenity, profanity, racism, demanding cash, etc. will lead to a permanent account ban as well as a criminal punishment in accordance with the relevant law.&#10;Additionally, prostitution is illegal, and anyone who sells sex, buys sex, brokers, solicits, lures, coerces, or engages in human trafficking for the purpose of prostitution can be criminally prosecuted according to the law.&#10;Do not move to other messaging platforms with people you can&#8217;t trust." resource-id="" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,459][1080,1609]" />
+                      <!-- VARIABLE: date separator -->
+                      <node index="1" text="[DATE]" resource-id="com.noyesrun.meeff.kr:id/date_textview" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[414,1609][665,1673]" />
+                      <!-- VARIABLE: system event message, contains person's name -->
+                      <node index="2" text="[PERSON_NAME] has opened the chat room." resource-id="com.noyesrun.meeff.kr:id/message_textview" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,1673][1080,1839]" />
+                    </node>
+
+                    <!-- Sent message bubble (one example; repeats per message) -->
+                    <node index="1" text="" resource-id="" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="true" password="false" selected="false" bounds="[0,1839][1080,1963]">
+                      <node index="0" text="" resource-id="" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[546,1870][601,1946]">
+                        <!-- VARIABLE: unread count ("1" = unread, disappears when read) -->
+                        <node index="0" text="1" resource-id="com.noyesrun.meeff.kr:id/read_textview" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[585,1870][601,1908]" />
+                        <!-- VARIABLE: message send time -->
+                        <node index="1" text="[TIME]" resource-id="com.noyesrun.meeff.kr:id/time_textview" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[546,1908][601,1946]" />
+                      </node>
+                      <!-- VARIABLE: actual message text -->
+                      <node index="1" text="[MESSAGE_CONTENT]" resource-id="com.noyesrun.meeff.kr:id/message_textview" class="android.widget.TextView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[624,1839][1035,1946]" />
+                    </node>
+
+                  </node>
+
+                  <node index="1" text="" resource-id="com.noyesrun.meeff.kr:id/bottom_line_view" class="android.view.View" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,2097][1080,2098]" />
+
+                  <!-- BOTTOM INPUT BAR -->
+                  <node index="2" text="" resource-id="com.noyesrun.meeff.kr:id/bottom_layout" class="android.widget.LinearLayout" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,2098][1080,2267]">
+                    <node NAF="true" index="0" text="" resource-id="com.noyesrun.meeff.kr:id/photo_add_imageview" class="android.widget.ImageView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[34,2132][135,2233]" />
+                    <node NAF="true" index="1" text="" resource-id="com.noyesrun.meeff.kr:id/trans_imageview" class="android.widget.ImageView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[135,2132][236,2233]" />
+                    <node index="2" text="Please enter the message." resource-id="com.noyesrun.meeff.kr:id/message_edittext" class="android.widget.EditText" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="true" password="false" selected="false" bounds="[259,2132][922,2233]" />
+                    <node index="3" text="" resource-id="com.noyesrun.meeff.kr:id/send_imageview" class="android.widget.ImageView" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="true" enabled="false" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[945,2132][1046,2233]" />
+                  </node>
+
+                </node>
+              </node>
+            </node>
+          </node>
+        </node>
+      </node>
+    </node>
+    <node index="1" text="" resource-id="android:id/statusBarBackground" class="android.view.View" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][1080,90]" />
+    <node index="2" text="" resource-id="android:id/navigationBarBackground" class="android.view.View" package="com.noyesrun.meeff.kr" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,2267][1080,2400]" />
+  </node>
+</hierarchy>
