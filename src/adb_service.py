@@ -102,8 +102,8 @@ class AdbService:
     def take_screenshot(self, crop_bounds=None):
         """Captures the current screen via ADB and saves it as a PNG.
 
-        Uses `adb exec-out screencap -p` which pipes raw PNG bytes directly,
-        avoiding any temp file on the device.
+        Uses the pull method (screencap on device → adb pull) which is
+        more reliable than exec-out for binary data (avoids CRLF corruption).
 
         Args:
             crop_bounds: Optional dict {x_min, y_min, x_max, y_max} to crop
@@ -112,28 +112,57 @@ class AdbService:
         Returns:
             str: Local file path to the saved PNG, or None on failure.
         """
+        os.makedirs('screenshots', exist_ok=True)
+        device_path = "/sdcard/_meeff_shot.png"
+        raw_path = "screenshots/_raw.png"
+
         try:
-            result = subprocess.run(
-                ['adb', 'exec-out', 'screencap', '-p'],
-                capture_output=True, timeout=10
-            )
-            if result.returncode != 0 or not result.stdout:
-                print("[AdbService] Screenshot failed: empty response from device.")
+            print("[AdbService] Taking screenshot...")
+
+            # Step 1: capture on device
+            self.run_command(f"shell screencap -p {device_path}", check=False)
+
+            # Step 2: pull to local disk
+            self.run_command(f"pull {device_path} {raw_path}", check=False)
+
+            if not os.path.exists(raw_path) or os.path.getsize(raw_path) == 0:
+                print("[AdbService] Screenshot failed: file missing or empty after pull.")
                 return None
 
-            from PIL import Image
-            import io
+            raw_size_kb = os.path.getsize(raw_path) / 1024
+            print(f"[AdbService] Raw screenshot pulled: {raw_path} ({raw_size_kb:.1f} KB)")
 
-            img = Image.open(io.BytesIO(result.stdout))
+            # Step 3: open and optionally crop
+            from PIL import Image
+            img = Image.open(raw_path)
+            print(f"[AdbService] Image opened: {img.width}x{img.height}px, mode={img.mode}")
+
             if crop_bounds:
                 img = img.crop((
                     crop_bounds['x_min'], crop_bounds['y_min'],
                     crop_bounds['x_max'], crop_bounds['y_max']
                 ))
+                print(f"[AdbService] Cropped to {img.width}x{img.height}px "
+                      f"(x:{crop_bounds['x_min']}-{crop_bounds['x_max']}, "
+                      f"y:{crop_bounds['y_min']}-{crop_bounds['y_max']})")
+            else:
+                print("[AdbService] No crop bounds — using full screenshot.")
 
-            os.makedirs('screenshots', exist_ok=True)
+            # Step 4: detect all-black image (FLAG_SECURE blocks ADB screenshots)
+            from PIL import ImageStat
+            stat = ImageStat.Stat(img.convert("RGB"))
+            if all(m < 2 for m in stat.mean):
+                print("[AdbService] Screenshot is all black — app has FLAG_SECURE. Cannot score photo.")
+                os.remove(raw_path)
+                return None
+
+            # Step 5: save final file
             path = f"screenshots/profile_{int(time.time())}.png"
             img.save(path)
+            final_size_kb = os.path.getsize(path) / 1024
+            print(f"[AdbService] Screenshot saved: {path} ({final_size_kb:.1f} KB)")
+
+            os.remove(raw_path)
             return path
 
         except Exception as e:
