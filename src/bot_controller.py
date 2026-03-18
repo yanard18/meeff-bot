@@ -120,6 +120,7 @@ class BotController:
         print("="*40 + "\n")
 
         launch_attempts = 0
+        unknown_streak = 0
 
         try:
             while True:
@@ -141,6 +142,7 @@ class BotController:
                     launch_attempts = 0
 
                 if state == "ACTIVE (Swipe Mode)":
+                    unknown_streak = 0
                     print("[*] Profile deck detected. Tapping photo to open detailed view...")
                     self.adb.human_tap(main_profile_photo, name="Profile Photo")
                     
@@ -148,6 +150,7 @@ class BotController:
                     time.sleep(t_conf["delay_after_opening_profile"])
                     
                 elif state == "ACTIVE (Detailed Profile)":
+                    unknown_streak = 0
                     print("[*] Reading detailed profile...")
 
                     # 1. Capture profile photo and score it
@@ -192,19 +195,23 @@ class BotController:
                     time.sleep(post_swipe_delay)
 
                 elif state == "ACTIVE (Chat With Person)":
+                    unknown_streak = 0
                     self._handle_active_chat()
 
                 elif state == "ACTIVE (Ad)":
+                    unknown_streak = 0
                     print("[*] WebView ad detected! Closing via close button...")
                     self.adb.human_tap(c_conf["ad_close_button"], margin=10, name="Ad Close Button")
                     time.sleep(2)
 
                 elif state == "ACTIVE (Native Ad)":
+                    unknown_streak = 0
                     print("[*] Native ad detected! Pressing back to dismiss...")
                     self.adb.press_back()
                     time.sleep(2)
 
                 elif state == "ACTIVE (Quit Dialog)":
+                    unknown_streak = 0
                     print("[*] Quit dialog detected! Tapping Cancel...")
                     cancel_bounds = self.vision.get_node_bounds("negativeButton")
                     if cancel_bounds:
@@ -214,9 +221,14 @@ class BotController:
                     time.sleep(1)
 
                 else:
-                    # Unknown state (like an ad or chat screen). Just wait and check again.
-                    print("[*] Unknown screen or Ad detected. Waiting...")
-                    time.sleep(3)
+                    unknown_streak += 1
+                    print(f"[*] Unknown screen detected (streak: {unknown_streak}/3). Waiting...")
+                    if unknown_streak >= 3:
+                        print("[*] Stuck for 3 consecutive unknown states — triggering safe escape.")
+                        self.adb.safe_escape()
+                        unknown_streak = 0
+                    else:
+                        time.sleep(3)
                 
         except KeyboardInterrupt:
             print("\n[*] Stopping Bot...")

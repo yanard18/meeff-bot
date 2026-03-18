@@ -89,6 +89,26 @@ class AdbService:
         """Presses the Android back button."""
         self.run_command("shell input keyevent 4")
 
+    def safe_escape(self):
+        """Emergency recovery: close everything, free RAM, relaunch Meeff.
+
+        Called when the bot is stuck on an unrecognised screen for too long.
+        Steps:
+          1. Press Home — exits whatever is on screen
+          2. Kill all background apps — frees RAM
+          3. Force-stop Meeff — ensures a clean relaunch
+          4. Wait, then relaunch Meeff
+        """
+        print("[SafeEscape] Stuck detected — closing all apps and clearing RAM...")
+        self.run_command("shell input keyevent 3")          # Home button
+        time.sleep(1)
+        self.run_command("shell am kill-all")               # Kill background apps
+        self.run_command(f"shell am force-stop {self.package_name}")
+        print("[SafeEscape] Apps cleared. Waiting 3s before relaunch...")
+        time.sleep(3)
+        self.launch_app(wait_time=10)
+        print("[SafeEscape] Meeff relaunched.")
+
     def human_tap(self, bounds, margin=20, name="button"):
         """Generalized method to tap any button with human-like evasion."""
         x = random.randint(bounds["x_min"] + margin, bounds["x_max"] - margin)
