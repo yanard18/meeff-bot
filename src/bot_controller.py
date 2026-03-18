@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import sys
 import random
@@ -23,6 +24,17 @@ class BotController:
             weights=critic_conf.get("weights", {}),
             threshold=critic_conf.get("threshold", 60),
         )
+
+    def _save_training_sample(self, screenshot_path, liked):
+        """Copies the screenshot into labeled_data/liked or labeled_data/disliked."""
+        if not screenshot_path or not os.path.exists(screenshot_path):
+            return
+        label = "liked" if liked else "disliked"
+        dest_dir = os.path.join("labeled_data", label)
+        os.makedirs(dest_dir, exist_ok=True)
+        dest = os.path.join(dest_dir, f"{int(time.time())}.png")
+        shutil.copy(screenshot_path, dest)
+        print(f"[Data] Saved training sample → {dest}")
 
     def _evaluate_profile(self, screenshot_path):
         """Returns True (like) or False (skip). Skips AI if disabled in config."""
@@ -132,6 +144,9 @@ class BotController:
                     screenshot_path = self.adb.take_screenshot(crop_bounds=photo_bounds)
                     time.sleep(1)  # brief pause after capture before sending to AI
                     should_like = self._evaluate_profile(screenshot_path)
+
+                    # Save screenshot to labeled_data/ for future CLIP training
+                    self._save_training_sample(screenshot_path, should_like)
 
                     if not should_like:
                         print("[*] AI scored profile below threshold. Tapping Nope...")
