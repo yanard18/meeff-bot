@@ -84,9 +84,6 @@ class AdbService:
         """Presses the Android back button."""
         self.run_command("shell input keyevent 4")
 
-    def tap(self, x, y):
-        self.run_command(f"shell input tap {x} {y}")
-
     def human_tap(self, bounds, margin=20, name="button"):
         """Generalized method to tap any button with human-like evasion."""
         x = random.randint(bounds["x_min"] + margin, bounds["x_max"] - margin)
@@ -101,6 +98,37 @@ class AdbService:
         print(f"[AdbService] Tapping '{name}' at randomized coordinates: ({x}, {y})")
         result = self.run_command(f"shell input tap {x} {y}")
         return result is not None
+
+    def take_screenshot(self, crop_bounds=None):
+        """Captures the current screen and saves it locally.
+
+        Args:
+            crop_bounds: Optional dict with x_min/y_min/x_max/y_max to crop
+                         the image to a specific region (e.g. the profile photo).
+
+        Returns:
+            str: Local file path to the saved PNG, or None on failure.
+
+        Implementation note (Phase 1):
+            adb exec-out screencap -p > screenshots/{timestamp}.png
+            If crop_bounds given, use Pillow to crop before returning.
+        """
+        raise NotImplementedError("Phase 1: take_screenshot() not yet implemented.")
+
+    def type_text(self, text):
+        """Types a string into the currently focused input field.
+
+        Args:
+            text: The string to type. Special characters will be escaped.
+
+        Returns:
+            bool: True on success, False on failure.
+
+        Implementation note (Phase 6):
+            adb shell input text "{escaped_text}"
+            Spaces must be escaped as %s for ADB input.
+        """
+        raise NotImplementedError("Phase 6: type_text() not yet implemented.")
 
     def human_scroll_down(self):
         """Simulates a natural human scroll down the page."""

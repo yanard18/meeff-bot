@@ -11,6 +11,33 @@ class BotController:
         self.adb = AdbService()
         self.vision = VisionService(self.adb)
 
+    def _evaluate_profile(self, screenshot_path):
+        """Hook: decides whether to like the current profile.
+
+        Args:
+            screenshot_path: Path to the profile screenshot taken by AdbService.
+
+        Returns:
+            bool: True to like, False to skip.
+
+        Current behavior (Phase 0–2): always returns True.
+        Phase 3: will call self.ai.score_profile_photo(screenshot_path)
+                 and return score >= config["ai"]["photo_score_threshold"].
+        """
+        return True
+
+    def _handle_active_chat(self):
+        """Hook: handles an open individual chat screen.
+
+        Current behavior (Phase 0–5): presses back to exit the chat.
+        Phase 6: will call self.vision.get_chat_messages(), then
+                 self.ai.generate_chat_reply(), then self.adb.type_text()
+                 to compose and send a human-like reply.
+        """
+        print("[*] Individual chat detected. Exiting chat (AI reply not yet enabled).")
+        self.adb.press_back()
+        time.sleep(2)
+
     def verify_system(self):
         print("[*] Checking system and device...")
         if not self.adb.is_device_connected():
@@ -81,32 +108,46 @@ class BotController:
                     
                 elif state == "ACTIVE (Detailed Profile)":
                     print("[*] Reading detailed profile...")
-                    
-                    # 1. Decide how many times to scroll based on config weights
+
+                    # 1. AI hook: evaluate the profile (photo scoring in Phase 3)
+                    #    For now, _evaluate_profile always returns True.
+                    screenshot_path = None  # Phase 1: will be set by take_screenshot()
+                    should_like = self._evaluate_profile(screenshot_path)
+
+                    if not should_like:
+                        print("[*] AI scored profile below threshold. Skipping...")
+                        self.adb.press_back()
+                        time.sleep(1)
+                        continue
+
+                    # 2. Decide how many times to scroll based on config weights
                     scroll_weights = b_conf["scrolls_weights"]
                     scrolls = random.choices([0, 1, 2, 3], weights=scroll_weights)[0]
-                    
+
                     if scrolls > 0:
                         for i in range(scrolls):
                             print(f"[*] Executing scroll {i+1} of {scrolls}...")
                             self.adb.human_scroll_down()
-                        
-                    # 2. Final hesitation before making a decision based on config
+
+                    # 3. Final hesitation before making a decision based on config
                     read_time = random.uniform(t_conf["thinking_before_like_min"], t_conf["thinking_before_like_max"])
                     print(f"[*] Thinking for {read_time:.2f}s...")
                     time.sleep(read_time)
-                    
-                    # 3. Tap the Like button
+
+                    # 4. Tap the Like button
                     success = self.adb.human_tap(detailed_like_button, name="Detailed Like")
                     if success:
                         print("[+] Successfully liked profile.")
                     else:
                         print("[!] Failed to tap Like.")
-                    
+
                     # Wait for the next profile to load after liking based on config
                     post_swipe_delay = random.uniform(t_conf["delay_after_like_min"], t_conf["delay_after_like_max"])
                     print(f"[*] Waiting {post_swipe_delay:.2f}s before next action...\n")
                     time.sleep(post_swipe_delay)
+
+                elif state == "ACTIVE (Chat With Person)":
+                    self._handle_active_chat()
 
                 elif state == "ACTIVE (Ad)":
                     print("[*] WebView ad detected! Closing via close button...")

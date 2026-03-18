@@ -15,6 +15,15 @@
     "behavior": {
         "scrolls_weights": [5, 25, 40, 30]
     },
+    "ai": {
+        "enabled": false,
+        "model": "claude-opus-4-6",
+        "photo_score_threshold": 6.5,
+        "chat_reply_enabled": false,
+        "chat_reply_delay_min": 8.0,
+        "chat_reply_delay_max": 20.0,
+        "persona": "You are a warm, curious person chatting on a social app. Keep replies short, genuine, and ask one question back."
+    },
     "coordinates": {
         "main_profile_photo":  {"x_min": 100, "x_max": 900, "y_min":  500, "y_max": 1500},
         "detailed_like_button": {"x_min": 557, "x_max": 760, "y_min": 1969, "y_max": 2172},

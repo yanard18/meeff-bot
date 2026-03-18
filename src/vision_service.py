@@ -88,6 +88,9 @@ class VisionService:
             return "ACTIVE (Swipe Mode)"
         if 'voice_bloom_imageview' in res_ids or 'vibe_meet_imageview' in res_ids:
             return "ACTIVE (Find Page)"
+        # Individual chat (has message input field) — check before Chat List
+        if 'message_edittext' in res_ids or 'send_imageview' in res_ids:
+            return "ACTIVE (Chat With Person)"
         if 'last_msg_textview' in res_ids or 'local_time_textview' in res_ids:
             return "ACTIVE (Chat List)"
         if 'plus_layout' in res_ids or 'ruby_count_textview' in res_ids:
@@ -100,3 +103,21 @@ class VisionService:
             return "ACTIVE (Today Page)"
             
         return "ACTIVE (Unknown Screen/Ad)"
+
+    def get_chat_messages(self):
+        """Parses the current chat screen XML into a conversation history list.
+
+        Differentiates sent vs received messages by bubble x-position:
+          x_min > 540  →  role "assistant" (our sent messages, right-aligned)
+          x_min <= 540 →  role "user"      (their messages, left-aligned)
+
+        Returns:
+            list[dict]: [{"role": "user"|"assistant", "content": "..."}]
+                        Returns empty list if no messages found or tree not loaded.
+
+        Implementation note (Phase 4):
+            Iterate cached_tree for nodes with resource-id ending in
+            'message_textview', filter out system/terms messages,
+            and classify by bounds x_min.
+        """
+        raise NotImplementedError("Phase 4: get_chat_messages() not yet implemented.")
