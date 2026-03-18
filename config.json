@@ -19,10 +19,6 @@
         "enabled": true,
         "critic_mode": "clip",
         "model": "claude-haiku-4-5-20251001",
-        "chat_reply_enabled": false,
-        "chat_reply_delay_min": 8.0,
-        "chat_reply_delay_max": 20.0,
-        "persona": "You are a warm, curious person chatting on a social app. Keep replies short, genuine, and ask one question back.",
         "critic": {
             "threshold": 60,
             "clip_threshold": 0.6,

@@ -101,26 +101,3 @@ class AIService:
             return {k: bool(data[k]) for k in keys}
         except (KeyError, ValueError, _json.JSONDecodeError):
             raise AIServiceError(f"Could not parse classifier response: '{raw}'")
-
-    def generate_chat_reply(self, conversation, persona):
-        """Generates a natural chat reply given the conversation history.
-
-        Args:
-            conversation: list[dict] with keys "role" ("user"|"assistant")
-                          and "content" (str). Last entry is always the
-                          other person's latest message (role="user").
-            persona: A string describing how the bot should present itself.
-                     Loaded from config["ai"]["persona"].
-
-        Returns:
-            str: A short, natural reply ready to be typed into the chat.
-
-        Raises:
-            AIServiceError: If the API call fails or returns an empty response.
-
-        Implementation note (Phase 5):
-            1. Build system prompt from persona string.
-            2. Pass conversation list directly to the messages API.
-            3. Return message.content[0].text stripped of whitespace.
-        """
-        raise NotImplementedError("Phase 5: generate_chat_reply() not yet implemented.")
