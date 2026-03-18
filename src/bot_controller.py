@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import sys
 import random
@@ -6,6 +7,7 @@ from .adb_service import AdbService
 from .vision_service import VisionService
 from .ai_service import AIService
 from .critic import ProfileCritic
+from .clip_critic import ClipCritic
 
 class BotController:
     """The central brain/loop that manages the bot's flow and services."""
@@ -15,14 +17,35 @@ class BotController:
         self.vision = VisionService(self.adb)
         ai_conf = self.adb.config.get("ai", {})
         self.ai = AIService(ai_conf)
-        critic_conf = ai_conf.get("critic", {})
-        self.critic = ProfileCritic(
-            classifier=self.ai.classify_profile_photo,
-            questions=critic_conf.get("questions", []),
-            disqualifiers=critic_conf.get("disqualifiers", ["is_woman"]),
-            weights=critic_conf.get("weights", {}),
-            threshold=critic_conf.get("threshold", 60),
-        )
+
+        critic_mode = ai_conf.get("critic_mode", "llm")  # "llm" or "clip"
+
+        if critic_mode == "clip":
+            clip_threshold = ai_conf.get("critic", {}).get("clip_threshold", 0.6)
+            self.critic = ClipCritic(threshold=clip_threshold)
+            print(f"[Bot] Using CLIP critic (threshold={clip_threshold})")
+        else:
+            critic_conf = ai_conf.get("critic", {})
+            self.critic = ProfileCritic(
+                classifier=self.ai.classify_profile_photo,
+                questions=critic_conf.get("questions", []),
+                disqualifiers=critic_conf.get("disqualifiers", ["is_woman"]),
+                weights=critic_conf.get("weights", {}),
+                threshold=critic_conf.get("threshold", 60),
+            )
+            print("[Bot] Using LLM critic")
+
+    def _save_training_sample(self, screenshot_path, liked):
+        """Copies the screenshot into labeled_data/liked or labeled_data/disliked."""
+        if not screenshot_path or not os.path.exists(screenshot_path):
+            return
+        label = "liked" if liked else "disliked"
+        dest_dir = os.path.join("labeled_data", label)
+        os.makedirs(dest_dir, exist_ok=True)
+        ext = os.path.splitext(screenshot_path)[1] or ".jpg"
+        dest = os.path.join(dest_dir, f"{int(time.time())}{ext}")
+        shutil.copy(screenshot_path, dest)
+        print(f"[Data] Saved training sample → {dest}")
 
     def _evaluate_profile(self, screenshot_path):
         """Returns True (like) or False (skip). Skips AI if disabled in config."""
@@ -132,6 +155,9 @@ class BotController:
                     screenshot_path = self.adb.take_screenshot(crop_bounds=photo_bounds)
                     time.sleep(1)  # brief pause after capture before sending to AI
                     should_like = self._evaluate_profile(screenshot_path)
+
+                    # Save screenshot to labeled_data/ for future CLIP training
+                    self._save_training_sample(screenshot_path, should_like)
 
                     if not should_like:
                         print("[*] AI scored profile below threshold. Tapping Nope...")
