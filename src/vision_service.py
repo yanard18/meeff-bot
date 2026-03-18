@@ -142,3 +142,21 @@ class VisionService:
     def get_first_liked_profile_bounds(self):
         """Returns bounds of the first profile thumbnail in the likes grid."""
         return self.get_node_bounds('thumb_photo_imageview')
+
+    def get_matched_friends_count(self) -> int:
+        """Returns the number of matched friends shown in the chat list."""
+        if self.cached_tree is None:
+            return 0
+        for node in self.cached_tree.iter('node'):
+            m = re.match(r'^(\d+)\s+matched friend', node.attrib.get('text', ''))
+            if m:
+                return int(m.group(1))
+        return 0
+
+    def get_first_matched_friend_bounds(self):
+        """Returns bounds of the first (leftmost) matched friend card.
+
+        expire_progressbar is unique to matched friend cards in the horizontal
+        recyclerview, so the first occurrence reliably targets the first card.
+        """
+        return self.get_node_bounds('expire_progressbar')

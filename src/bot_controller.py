@@ -22,8 +22,11 @@ class BotController:
         likes_interval_mins = self.adb.config.get("likes_check_interval_minutes", 10)
         self._like_check_interval_secs = likes_interval_mins * 60
         self._last_like_check = 0.0  # 0 = check on first opportunity
+        matched_interval_mins = self.adb.config.get("matched_check_interval_minutes", 5)
+        self._matched_check_interval_secs = matched_interval_mins * 60
+        self._last_matched_check = 0.0
         print(f"[Bot] Using CLIP critic (threshold={clip_threshold})")
-        print(f"[Bot] Incoming likes check: every {likes_interval_mins} min")
+        print(f"[Bot] Likes check: every {likes_interval_mins} min | Matched friends: every {matched_interval_mins} min")
 
     def _save_training_sample(self, screenshot_path, liked):
         """Copies the screenshot into labeled_data/liked or labeled_data/disliked."""
@@ -147,13 +150,18 @@ class BotController:
                 if state == "ACTIVE (Swipe Mode)":
                     unknown_streak = 0
 
-                    # Periodic incoming likes check: navigate to Chat/Likes section.
+                    # Periodic chat check: incoming likes and/or matched friends.
                     # The state machine handles everything from there.
-                    if time.time() - self._last_like_check >= self._like_check_interval_secs:
+                    likes_due = time.time() - self._last_like_check >= self._like_check_interval_secs
+                    matched_due = time.time() - self._last_matched_check >= self._matched_check_interval_secs
+                    if likes_due or matched_due:
                         chat_tab = self.vision.get_node_bounds("tab_dashboard")
                         if chat_tab:
-                            self._last_like_check = time.time()
-                            print("[Likes] Checking for incoming likes...")
+                            if likes_due:
+                                self._last_like_check = time.time()
+                            if matched_due:
+                                self._last_matched_check = time.time()
+                            print("[Chat] Periodic check — navigating to chat section...")
                             self.adb.human_tap(chat_tab, name="Chat Tab")
                             time.sleep(1.5)
                             continue
@@ -210,9 +218,17 @@ class BotController:
                     time.sleep(post_swipe_delay)
 
                 elif state == "ACTIVE (Chat List)":
-                    # We only land here during a periodic likes check.
-                    # Navigate to the Like inner tab.
+                    # Landed here during periodic check.
+                    # Process matched friends first (they expire!), then incoming likes.
                     unknown_streak = 0
+                    count = self.vision.get_matched_friends_count()
+                    if count > 0:
+                        print(f"[Matched] {count} matched friend(s) — opening first...")
+                        first = self.vision.get_first_matched_friend_bounds()
+                        if first:
+                            self.adb.human_tap(first, name="Matched Friend")
+                            time.sleep(1.5)
+                            continue
                     print("[Likes] On chat list — navigating to Like tab...")
                     like_tab = self.vision.get_like_inner_tab_bounds()
                     if like_tab:
