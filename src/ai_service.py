@@ -34,15 +34,18 @@ class AIService:
         self._client = anthropic.Anthropic(api_key=api_key)
         return self._client
 
-    def score_profile_photo(self, screenshot_path, rules):
-        """Scores the profile photo using the provided rules and returns (score, explanation).
+    def classify_profile_photo(self, screenshot_path, questions):
+        """Asks factual yes/no questions about a profile photo and returns the answers.
+
+        The LLM is never asked to rate or judge — only to observe facts.
+        Scoring is computed by the caller (ProfileCritic) from the returned dict.
 
         Args:
             screenshot_path: Path to a PNG/JPEG of the profile photo.
-            rules: Plain-text scoring criteria from the critic configuration.
+            questions: list of dicts with keys "key" (str) and "text" (str question).
 
         Returns:
-            tuple[float, str]: (score 0.0–100.0, one-sentence explanation)
+            dict[str, bool]: Maps each question key to True or False.
 
         Raises:
             AIServiceError: If the API call fails or the response is unparseable.
@@ -59,16 +62,20 @@ class AIService:
         with open(screenshot_path, 'rb') as f:
             image_data = base64.standard_b64encode(f.read()).decode('utf-8')
 
+        keys = [q["key"] for q in questions]
+        question_lines = "\n".join(f'- {q["key"]}: {q["text"]}' for q in questions)
+        example = "{" + ", ".join(f'"{k}": true' for k in keys) + "}"
         prompt = (
-            f"{rules}\n\n"
-            'Respond with a single JSON object, nothing else: '
-            '{"score": <0-100>, "explanation": "<one sentence>"}'
+            "Answer each question about this photo with true or false.\n"
+            "Respond with ONLY a JSON object — no explanation, no extra text.\n\n"
+            f"Questions:\n{question_lines}\n\n"
+            f"Required format: {example}"
         )
 
         client = self._get_client()
         message = client.messages.create(
             model=self.model,
-            max_tokens=100,
+            max_tokens=150,
             messages=[{
                 "role": "user",
                 "content": [
@@ -86,17 +93,14 @@ class AIService:
         )
 
         raw = message.content[0].text.strip()
-        # Strip markdown code fences if the model wraps its JSON response
         if raw.startswith("```"):
             lines = raw.splitlines()
             raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:]).strip()
         try:
             data = _json.loads(raw)
-            score = max(0.0, min(100.0, float(data["score"])))
-            explanation = str(data.get("explanation", ""))
-            return score, explanation
+            return {k: bool(data[k]) for k in keys}
         except (KeyError, ValueError, _json.JSONDecodeError):
-            raise AIServiceError(f"Could not parse critic response: '{raw}'")
+            raise AIServiceError(f"Could not parse classifier response: '{raw}'")
 
     def generate_chat_reply(self, conversation, persona):
         """Generates a natural chat reply given the conversation history.

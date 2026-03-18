@@ -18,12 +18,40 @@
     "ai": {
         "enabled": true,
         "model": "claude-haiku-4-5-20251001",
-        "photo_score_threshold": 60,
         "chat_reply_enabled": false,
         "chat_reply_delay_min": 8.0,
         "chat_reply_delay_max": 20.0,
-        "persona": "You are an image classifaction engine, and your goal to score given AI generated photo.",
-        "critic_rules": "RULE1: Give 1 score, if person is a man/boy, if person not identifieble in picture. RULE2: If think that given image seems like a objectively attractive looking girl from a dating app give score 75, RULE3: If think that given image from a dating app, but avarage/goodish looking give score 50, RULE4: If tongue out pose, return score: 3, RULE5: if has visible weight on body or facial return score: 30"
+        "persona": "You are a warm, curious person chatting on a social app. Keep replies short, genuine, and ask one question back.",
+        "critic": {
+            "threshold": 60,
+            "disqualifiers": ["is_woman", "is_healthy_weight"],
+            "weights": {
+                "sexually_attractive":   25,
+                "submissive_looking":    20,
+                "cute":                  20,
+                "attractive_looking":    20,
+                "appears_young":         15,
+                "face_visible":          10,
+                "blonde":                 5,
+                "red_hair":               5,
+                "has_dog_or_cat_filter": -25,
+                "tongue_out_crazy_pose": -15
+            },
+            "questions": [
+                {"key": "is_woman",             "text": "Is the primary subject a woman or girl? Answer false if the subject is male, a child, an animal, an object, scenery, or if no person is present."},
+                {"key": "is_healthy_weight",    "text": "Does the person appear to have a healthy, non-overweight body weight based on visible proportions?"},
+                {"key": "sexually_attractive",  "text": "Does the person's pose, clothing, or expression suggest an intentionally alluring or flirtatious self-presentation?"},
+                {"key": "submissive_looking",   "text": "Does the person have a soft, gentle, or demure facial expression and body language rather than assertive or dominant?"},
+                {"key": "cute",                 "text": "Does the person have delicate, youthful facial features that could be described as cute or endearing?"},
+                {"key": "attractive_looking",   "text": "Does the person have symmetrical facial features and a well-proportioned overall appearance?"},
+                {"key": "appears_young",        "text": "Does the person appear to be under 30 years old?"},
+                {"key": "face_visible",         "text": "Is the person's face clearly visible and unobscured?"},
+                {"key": "blonde",               "text": "Does the person appear to have blonde or light-colored hair?"},
+                {"key": "red_hair",             "text": "Does the person appear to have red or auburn hair?"},
+                {"key": "has_dog_or_cat_filter","text": "Does the person have dog or cat ear filters, or similar animal face overlays applied in the photo?"},
+                {"key": "tongue_out_crazy_pose","text": "Is the person sticking their tongue out in an exaggerated or unusual way?"}
+            ]
+        }
     },
     "device_serial": "emulator-5554",
     "coordinates": {

@@ -15,10 +15,13 @@ class BotController:
         self.vision = VisionService(self.adb)
         ai_conf = self.adb.config.get("ai", {})
         self.ai = AIService(ai_conf)
+        critic_conf = ai_conf.get("critic", {})
         self.critic = ProfileCritic(
-            scorer=self.ai.score_profile_photo,
-            threshold=ai_conf.get("photo_score_threshold", 60),
-            rules=ai_conf.get("critic_rules", "Rate the attractiveness of the person 0-100. If no face is visible, score 0."),
+            classifier=self.ai.classify_profile_photo,
+            questions=critic_conf.get("questions", []),
+            disqualifiers=critic_conf.get("disqualifiers", ["is_woman"]),
+            weights=critic_conf.get("weights", {}),
+            threshold=critic_conf.get("threshold", 60),
         )
 
     def _evaluate_profile(self, screenshot_path):
