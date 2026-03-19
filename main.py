@@ -31,6 +31,7 @@ def build_bot():
     from src.tasks.profile_task import ProfileEvalTask
     from src.tasks.swipe_task import SwipeTask
     from src.tasks.recovery_task import RecoveryTask
+    from src.tasks.sleep_task import SleepTask
 
     # Services
     adb = AdbService()
@@ -57,17 +58,21 @@ def build_bot():
 
     # Scheduler + status bar (must exist before BotContext)
     scheduler = PeriodicScheduler()
-    likes_interval = config.get("likes_check_interval_minutes", 10) * 60
-    chat_interval  = config.get("chat_queue_interval_minutes", 5) * 60
+    likes_interval  = config.get("likes_check_interval_minutes", 10) * 60
+    chat_interval   = config.get("chat_queue_interval_minutes", 5) * 60
+    sleep_interval  = config.get("sleep_interval_minutes", 30) * 60
+    sleep_duration  = config.get("sleep_duration_minutes", 20) * 60
 
     # Prime timers so the first check fires after the configured interval,
     # not immediately on startup (scheduler._last defaults to epoch 0).
     scheduler.reset("likes")
     scheduler.reset("chat_queue")
+    scheduler.reset("sleep")
 
     status = StatusBar(scheduler)
     status.register_timer("Likes check", "likes",      likes_interval)
     status.register_timer("Chat queue",  "chat_queue", chat_interval)
+    status.register_timer("Sleep",       "sleep",      sleep_interval)
 
     ctx = BotContext(
         adb=adb,
@@ -87,10 +92,11 @@ def build_bot():
     chat_session_max = config.get("chat_session_max_seconds", 600)
 
     tasks = [
-        DialogTask(),                                                                                   # priority 100
-        MatchedProfileTask(),                                                                           # priority  60
-        ChatTask(),                                                                                     # priority  50
-        ChatQueueTask(scheduler, likes_interval, chat_interval, chat_session_max),    # priority  15
+        DialogTask(),                                                                    # priority 100
+        MatchedProfileTask(),                                                            # priority  60
+        ChatTask(),                                                                      # priority  50
+        SleepTask(scheduler, sleep_interval, sleep_duration),                           # priority  20
+        ChatQueueTask(scheduler, likes_interval, chat_interval, chat_session_max),      # priority  15
         LikePageTask(),                                                                  # priority  10
         ProfileEvalTask(),                                                               # priority   5
         SwipeTask(),                                                                     # priority   5
