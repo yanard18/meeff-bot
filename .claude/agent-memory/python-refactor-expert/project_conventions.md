@@ -24,5 +24,11 @@ Key refactoring decisions made (2026-03-19):
 - RecoveryTask.is_eligible: removed two inline comments that duplicated the class docstring. `return True` is self-evident in this context.
 - `scoring_enabled` on BotContext semantically conflates CLIP scoring with "AI enabled" — this is a known mismatch but fixing it requires interface changes; deferred.
 
+Print/logging convention (established 2026-03-19, print refactor pass):
+- All print prefixes use a noun-based component name in brackets: `[Orchestrator]`, `[Dialog]`, `[Recovery]`, `[Swipe]`, `[Profile]`, `[ChatList]`, `[Likes]`, `[Chat]`.
+- Exception: `verify_system()` in orchestrator uses sentinel prefixes `[*]`/`[!]`/`[+]` for the one-time startup sequence. This is intentional — visually distinct from the running loop.
+- Do NOT print a count/status message unconditionally and then follow it with a more specific message for the empty-list case. Gate the count print on the non-empty branch.
+- Do NOT use trailing `\n` inside print() calls — let the loop structure create visual separation.
+
 **Why:** align with PEP 8 and the project's Golden Rule (value over volume).
 **How to apply:** When reviewing future changes, reject alignment padding and section banners unless there are genuinely many heterogeneous methods that need visual grouping.

@@ -61,7 +61,7 @@ class ProfileEvalTask(Task):
             ctx.status.increment("likes")
 
         delay = random.uniform(t_conf["delay_after_like_min"], t_conf["delay_after_like_max"])
-        print(f"[Profile] Waiting {delay:.2f}s...\n")
+        print(f"[Profile] Waiting {delay:.2f}s...")
         time.sleep(delay)
 
     def _evaluate(self, ctx: BotContext, screenshot_path: str) -> bool:

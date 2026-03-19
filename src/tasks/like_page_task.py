@@ -18,9 +18,9 @@ class LikePageTask(Task):
 
     def run(self, ctx: BotContext, state: str) -> None:
         profiles = ctx.platform.get_liked_profiles()
-        print(f"[Likes] {len(profiles)} incoming like(s) pending.")
 
         if profiles:
+            print(f"[Likes] {len(profiles)} incoming like(s) pending.")
             ctx.adb.human_tap(profiles[0].bounds, name="Liked Profile")
             time.sleep(ctx.config["timing"]["delay_after_opening_profile"])
             return

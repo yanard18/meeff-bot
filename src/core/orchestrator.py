@@ -54,7 +54,7 @@ class Orchestrator:
         try:
             while True:
                 state = self._ctx.platform.detect_state()
-                print(f"[State] {state}")
+                print(f"[Orchestrator] {state}")
 
                 if status:
                     status.update_mode(state.removeprefix("ACTIVE (").removesuffix(")"))
