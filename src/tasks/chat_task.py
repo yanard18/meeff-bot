@@ -126,6 +126,31 @@ class ChatTask(Task):
             self._persist_message(ctx, msg["direction"], msg["text"])
 
     def _send_message(self, ctx: BotContext, text: str) -> None:
-        """Log the generated reply (dry-run mode — not sent to device)."""
-        print(f"[Chat] [DRY RUN] Would send: {text}")
+        # Step 1: tap the input field to give it focus
+        input_field = ctx.vision.get_node_bounds("message_edittext")
+        if not input_field:
+            print("[Chat] message_edittext not found — cannot send.")
+            return
+        ctx.adb.human_tap(input_field, name="Message Input")
+        time.sleep(1.0)  # wait for soft keyboard to appear
+
+        # Step 2: type character by character with human-like timing
+        ctx.adb.type_text_human(text)
+
+        # Step 3: refresh UI — keyboard shifts layout, old coords are stale
+        ctx.vision.refresh_screen_data()
+        time.sleep(0.3)
+
+        # Step 4: tap send with fresh coordinates
+        send = ctx.vision.get_node_bounds("send_imageview")
+        if send:
+            ctx.adb.human_tap(send, name="Send")
+        else:
+            print("[Chat] send_imageview not found after typing.")
+
+        # Step 5: dismiss keyboard so next tick reads clean layout
+        time.sleep(0.5)
+        ctx.adb.press_back()
+        time.sleep(0.5)
+
         self._persist_message(ctx, "sent", text)

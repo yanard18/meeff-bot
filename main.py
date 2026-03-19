@@ -89,14 +89,14 @@ def build_bot():
     store = ProfileStore("data/profiles.db")
     harvest = HarvestService(store=store, vision=vision, adb=adb, platform="meeff")
 
-    persona_config = config.get("chat_persona", {})
-    message_generator = AIMessageGenerator(ai, persona_config) if persona_config else None
-
     ai_conf = config.get("ai", {})
     ai = AIService(ai_conf)
     scoring_enabled = ai_conf.get("enabled", False)
     clip_threshold = ai_conf.get("clip_threshold", 0.6)
     critic = ClipCritic(threshold=clip_threshold)
+
+    persona_config = config.get("chat_persona", {})
+    message_generator = AIMessageGenerator(ai, persona_config) if persona_config else None
 
     print(f"[Bot] CLIP threshold={clip_threshold} | scoring={'on' if scoring_enabled else 'off'}")
 

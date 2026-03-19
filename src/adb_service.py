@@ -207,19 +207,40 @@ class AdbService:
                 os.remove(raw_path)
             return None
 
-    def type_text(self, text: str) -> None:
-        """Types text into the currently focused input field via ADB.
+    def _run_adb(self, args: list[str]) -> str | None:
+        """Run an ADB command given as a proper argument list (no string splitting)."""
+        try:
+            adb_path = os.environ.get("ADB_PATH", "adb")
+            prefix = ['-s', self.device_serial] if self.device_serial else []
+            result = subprocess.run(
+                [adb_path] + prefix + args,
+                capture_output=True, text=True, check=False
+            )
+            return result.stdout.strip()
+        except FileNotFoundError:
+            print("[!] Critical Error: ADB is not installed or not in your system PATH.")
+            sys.exit(1)
 
-        Uses 'input text' which works reliably for ASCII. For Korean or other
-        Unicode input, the device needs ADBKeyboard (or similar IME) installed
-        and set as the active keyboard. Without it, non-ASCII characters will
-        be dropped silently.
+    def type_text_human(self, text: str) -> None:
+        """Types text character by character with human-like timing.
+
+        Each character is sent as a separate ADB input command with a random
+        delay between keystrokes (60-100 WPM range). Word boundaries get a
+        slightly longer pause to mimic natural typing rhythm.
 
         Spaces are encoded as %s per the ADB input text protocol.
+        Percent signs are escaped as %25 to avoid misinterpretation.
         """
-        encoded = text.replace('%', '%25').replace(' ', '%s')
-        self.run_command(f'shell input text "{encoded}"', check=False)
-        time.sleep(0.5)
+        for char in text:
+            if char == '%':
+                self._run_adb(['shell', 'input', 'text', '%25'])
+            elif char == ' ':
+                self._run_adb(['shell', 'input', 'text', '%s'])
+                time.sleep(random.uniform(0.15, 0.40))  # longer pause at word boundary
+                continue
+            else:
+                self._run_adb(['shell', 'input', 'text', char])
+            time.sleep(random.uniform(0.06, 0.18))
 
     def human_scroll_down(self):
         """Simulates a natural human scroll down the page."""

@@ -45,7 +45,8 @@ class AIMessageGenerator:
         self._openers = persona_config.get("openers", [])
 
     def generate(self, messages: list[dict], profile: dict | None) -> str | None:
-        if not messages:
+        we_spoke = any(m["direction"] == "sent" for m in messages)
+        if not we_spoke:
             if not self._openers:
                 return None
             return random.choice(self._openers)
