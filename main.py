@@ -69,7 +69,7 @@ def build_bot():
 
     from profile_db import ProfileStore, HarvestService
 
-    from src.core.message_generator import TemplateGenerator
+    from src.core.message_generator import AIMessageGenerator
 
     from src.tasks.dialog_task import DialogTask
     from src.tasks.matched_profile_task import MatchedProfileTask
@@ -89,8 +89,8 @@ def build_bot():
     store = ProfileStore("data/profiles.db")
     harvest = HarvestService(store=store, vision=vision, adb=adb, platform="meeff")
 
-    chat_openers = config.get("chat_openers", [])
-    message_generator = TemplateGenerator(openers=chat_openers) if chat_openers else None
+    persona_config = config.get("chat_persona", {})
+    message_generator = AIMessageGenerator(ai, persona_config) if persona_config else None
 
     ai_conf = config.get("ai", {})
     ai = AIService(ai_conf)

@@ -37,6 +37,7 @@ class ChatTask(Task):
         self._profile_id: str | None = None
         self._turns_sent: int = 0
         self._msg_count_at_send: int = 0
+        self._recorded_msg_count: int = 0
 
     def is_eligible(self, state: str) -> bool:
         return "Chat With Person" in state
@@ -52,6 +53,7 @@ class ChatTask(Task):
             self._profile_id = ctx.harvest.harvest_chat_contact()
 
         messages = self._get_messages(ctx)
+        self._record_new_messages(ctx, messages)
         max_turns = ctx.config.get("chat_max_turns", 3)
 
         # Hot-chat detection: they replied while we were waiting
@@ -111,12 +113,18 @@ class ChatTask(Task):
             return ctx.message_generator.generate(messages, profile)
         return None
 
+    def _record_new_messages(self, ctx: BotContext, messages: list[dict]) -> None:
+        """Persist any messages not yet saved to the profile DB."""
+        if not ctx.harvest or not self._profile_id:
+            return
+        new = messages[self._recorded_msg_count:]
+        for msg in new:
+            ctx.harvest.record_message(self._profile_id, msg["direction"], msg["text"])
+        self._recorded_msg_count += len(new)
+
     def _send_message(self, ctx: BotContext, text: str) -> None:
-        """Type text into the input field and tap the send button."""
-        ctx.adb.type_text(text)
-        time.sleep(0.3)
-        send = ctx.vision.get_node_bounds("send_imageview")
-        if send:
-            ctx.adb.human_tap(send, name="Send")
+        """Log the generated reply (dry-run mode — not sent to device)."""
+        print(f"[Chat] [DRY RUN] Would send: {text}")
         if ctx.harvest and self._profile_id:
             ctx.harvest.record_message(self._profile_id, "sent", text)
+            self._recorded_msg_count += 1

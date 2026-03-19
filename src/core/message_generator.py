@@ -1,14 +1,16 @@
-"""MessageGenerator — protocol and default implementations.
+"""MessageGenerator — protocol and implementations.
 
 Any object that implements generate() can be injected into BotContext and used
 by ChatTask. Swap implementations without touching any task code.
 
 Implementations:
-  TemplateGenerator — cycles through a static list of openers (Phase 1)
-  Future: LLMGenerator — calls Claude/GPT with chat history context from ProfileStore
+  AIMessageGenerator  — sends openers from config, then uses Claude for replies
 """
 
+import random
 from typing import Protocol, runtime_checkable
+
+from ..ai_service import AIService, AIServiceError
 
 
 @runtime_checkable
@@ -21,32 +23,43 @@ class MessageGenerator(Protocol):
         """Return a reply string, or None to skip and leave the chat.
 
         Args:
-            messages: visible messages [{text, direction}, ...], oldest first.
+            messages: DB chat history [{text, direction}, ...], oldest first.
             profile:  harvested profile dict from ProfileStore, or None.
         """
 
 
-class TemplateGenerator:
-    """Sends one opener per new conversation, then stays silent (Phase 1).
+class AIMessageGenerator:
+    """Generates chat replies using Claude.
 
-    Cycles through a configured list of opener strings. Only sends when no
-    messages are visible yet (first contact). Returns None for all subsequent
-    turns so ChatTask leaves after the opener is delivered.
+    For empty conversations, returns a random opener from config (no API call).
+    For ongoing conversations, builds a message history and calls the model.
 
-    Replacing this with an LLM-backed generator requires only swapping the
-    MessageGenerator injected into BotContext — no task code changes.
+    Config keys (from chat_persona block in config.json):
+      system_prompt — persona/style instructions for the model
+      openers       — list of first-contact opener strings
     """
 
-    def __init__(self, openers: list[str]) -> None:
-        self._openers = openers
-        self._index = 0
+    def __init__(self, ai: AIService, persona_config: dict) -> None:
+        self._ai = ai
+        self._system = persona_config.get("system_prompt", "")
+        self._openers = persona_config.get("openers", [])
 
     def generate(self, messages: list[dict], profile: dict | None) -> str | None:
-        if not self._openers:
+        if not messages:
+            if not self._openers:
+                return None
+            return random.choice(self._openers)
+
+        anthropic_msgs = [
+            {
+                "role": "assistant" if m["direction"] == "sent" else "user",
+                "content": m["text"],
+            }
+            for m in messages
+        ]
+
+        try:
+            return self._ai.chat_reply(self._system, anthropic_msgs)
+        except AIServiceError as e:
+            print(f"[AIMessageGenerator] API error: {e}")
             return None
-        # Only send an opener when the conversation is empty (first contact)
-        if messages:
-            return None
-        opener = self._openers[self._index % len(self._openers)]
-        self._index += 1
-        return opener
