@@ -56,8 +56,8 @@ class MeeffPlatform(Platform):
         candidates: dict[str, ChatCandidate] = {}
 
         # Matched friends (time-limited — highest priority)
-        if self._vision.get_first_matched_friend_bounds():
-            bounds = self._vision.get_first_matched_friend_bounds()
+        bounds = self._vision.get_first_matched_friend_bounds()
+        if bounds:
             # Name not easily extractable from matched card; use placeholder
             candidates["__matched__"] = ChatCandidate(
                 name="Matched Friend",

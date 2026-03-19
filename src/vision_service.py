@@ -20,7 +20,7 @@ class VisionService:
             self.cached_tree = ET.fromstring(xml_content)
             return True
         except ET.ParseError as e:
-            # print(f"[VisionService] Failed to parse XML: {e}")
+            print(f"[VisionService] Failed to parse XML: {e}")
             self.cached_tree = None
             return False
 

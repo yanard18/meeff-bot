@@ -30,6 +30,9 @@ class ChatTask(Task):
     priority = 50
 
     def __init__(self) -> None:
+        self._reset_session_state()
+
+    def _reset_session_state(self) -> None:
         self._waiting_since: float | None = None
         self._profile_id: str | None = None
         self._turns_sent: int = 0
@@ -90,10 +93,7 @@ class ChatTask(Task):
 
     def _leave(self, ctx: BotContext) -> None:
         ctx.adb.press_back()
-        self._waiting_since = None
-        self._profile_id = None
-        self._turns_sent = 0
-        self._msg_count_at_send = 0
+        self._reset_session_state()
         time.sleep(2)
 
     def _get_messages(self, ctx: BotContext) -> list[dict]:
