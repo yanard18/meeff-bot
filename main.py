@@ -57,28 +57,35 @@ def build_bot():
     # Platform adapter
     platform = MeeffPlatform(adb, vision)
 
+    # Task enable flags — resolved early so timer setup can use them too.
+    task_conf = config.get("tasks", {})
+    def _on(name: str) -> bool:
+        return task_conf.get(name, True)
+
     # Scheduler + status bar (must exist before BotContext)
     scheduler = PeriodicScheduler()
     likes_interval  = config.get("likes_check_interval_minutes", 10) * 60
     chat_interval   = config.get("chat_queue_interval_minutes", 5) * 60
-    sleep_interval    = config.get("sleep_interval_minutes", 30) * 60
-    sleep_duration    = config.get("sleep_duration_minutes", 20) * 60
-    region_conf       = config.get("region_rotation", {})
-    region_interval   = region_conf.get("interval_minutes", 8) * 60
-    region_nations    = region_conf.get("nationalities", [])
-
-    # Prime timers so the first check fires after the configured interval,
-    # not immediately on startup (scheduler._last defaults to epoch 0).
-    scheduler.reset("likes")
-    scheduler.reset("chat_queue")
-    scheduler.reset("sleep")
-    scheduler.reset("switch_region")
+    sleep_interval  = config.get("sleep_interval_minutes", 30) * 60
+    sleep_duration  = config.get("sleep_duration_minutes", 20) * 60
+    region_conf     = config.get("region_rotation", {})
+    region_interval = region_conf.get("interval_minutes", 8) * 60
+    region_nations  = region_conf.get("nationalities", [])
 
     status = StatusBar(scheduler)
-    status.register_timer("Likes check",   "likes",         likes_interval)
-    status.register_timer("Chat queue",    "chat_queue",    chat_interval)
-    status.register_timer("Sleep",         "sleep",         sleep_interval)
-    status.register_timer("Region switch", "switch_region", region_interval)
+
+    # Only prime and register timers for enabled tasks.
+    if _on("chat_queue"):
+        scheduler.reset("likes")
+        scheduler.reset("chat_queue")
+        status.register_timer("Likes check", "likes",     likes_interval)
+        status.register_timer("Chat queue",  "chat_queue", chat_interval)
+    if _on("sleep"):
+        scheduler.reset("sleep")
+        status.register_timer("Sleep", "sleep", sleep_interval)
+    if _on("switch_region"):
+        scheduler.reset("switch_region")
+        status.register_timer("Region switch", "switch_region", region_interval)
 
     ctx = BotContext(
         adb=adb,
@@ -99,10 +106,6 @@ def build_bot():
 
     # Optional tasks — each can be toggled in config["tasks"][name].
     # DialogTask and RecoveryTask are always active (bot infrastructure).
-    task_conf = config.get("tasks", {})
-    def _on(name: str) -> bool:
-        return task_conf.get(name, True)
-
     optional = {
         "matched_profile": MatchedProfileTask(),                                         # priority  60
         "chat":            ChatTask(),                                                   # priority  50
