@@ -17,24 +17,17 @@ class ChatListTask(Task):
         return "Chat List" in state
 
     def run(self, ctx: BotContext, state: str) -> None:
-        count = ctx.vision.get_matched_friends_count()
-        if count > 0:
-            print(f"[ChatList] {count} matched friend(s) — opening first...")
-            first = ctx.vision.get_first_matched_friend_bounds()
-            if first:
-                ctx.adb.human_tap(first, name="Matched Friend")
-                time.sleep(1.5)
-                return
-            print("[ChatList] Thumbnail not found — skipping matches.")
-
-        like_tab = ctx.vision.get_like_inner_tab_bounds()
-        if like_tab:
-            print("[ChatList] Navigating to Like tab...")
-            ctx.adb.human_tap(like_tab, name="Like Tab")
+        friends = ctx.platform.get_matched_friends()
+        if friends:
+            print(f"[ChatList] {len(friends)} matched friend(s) — opening first...")
+            ctx.adb.human_tap(friends[0].bounds, name="Matched Friend")
             time.sleep(1.5)
-        else:
-            print("[ChatList] Nothing to process — returning to swipe.")
-            tab = ctx.vision.get_node_bounds("tab_explore")
-            if tab:
-                ctx.adb.human_tap(tab, name="Swipe Tab")
-                time.sleep(1.5)
+            return
+
+        print("[ChatList] No matched friends — navigating to likes...")
+        ctx.platform.navigate_to_likes()
+
+        # If navigate_to_likes found nothing, fall back to swipe.
+        if "Like" not in ctx.platform.detect_state():
+            print("[ChatList] Likes tab not found — returning to swipe.")
+            ctx.platform.navigate_to_swipe()

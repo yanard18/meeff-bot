@@ -17,20 +17,13 @@ class LikePageTask(Task):
         return "Like/Visitor Page" in state
 
     def run(self, ctx: BotContext, state: str) -> None:
-        count = ctx.vision.get_like_count()
-        print(f"[Likes] {count} incoming like(s) pending.")
+        profiles = ctx.platform.get_liked_profiles()
+        print(f"[Likes] {len(profiles)} incoming like(s) pending.")
 
-        if count > 0:
-            profile = ctx.vision.get_first_liked_profile_bounds()
-            if profile:
-                ctx.adb.human_tap(profile, name="Liked Profile")
-                time.sleep(ctx.config["timing"]["delay_after_opening_profile"])
-                return
-            print("[Likes] Thumbnail not found — returning to swipe.")
-        else:
-            print("[Likes] No more incoming likes — returning to swipe.")
+        if profiles:
+            ctx.adb.human_tap(profiles[0].bounds, name="Liked Profile")
+            time.sleep(ctx.config["timing"]["delay_after_opening_profile"])
+            return
 
-        tab = ctx.vision.get_node_bounds("tab_explore")
-        if tab:
-            ctx.adb.human_tap(tab, name="Swipe Tab")
-            time.sleep(1.5)
+        print("[Likes] No more incoming likes — returning to swipe.")
+        ctx.platform.navigate_to_swipe()

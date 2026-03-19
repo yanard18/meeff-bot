@@ -28,20 +28,13 @@ class SwipeTask(Task):
                 or self._scheduler.is_due("likes", interval_likes)):
             self._scheduler.reset("matches")
             self._scheduler.reset("likes")
-            self._navigate_to_chat(ctx)
+            print("[Swipe] Periodic check — navigating to chat list...")
+            ctx.platform.navigate_to_chat_list()
         else:
             self._open_profile(ctx)
 
-    def _navigate_to_chat(self, ctx: BotContext) -> None:
-        print("[Swipe] Periodic check — navigating to chat section...")
-        ctx.vision.refresh_screen_data()
-        tab = ctx.vision.get_node_bounds("tab_dashboard")
-        if tab:
-            ctx.adb.human_tap(tab, name="Chat Tab")
-            time.sleep(1.5)
-
     def _open_profile(self, ctx: BotContext) -> None:
-        print("[Swipe] Profile deck detected. Tapping photo to open detailed view...")
+        print("[Swipe] Tapping profile photo to open detailed view...")
         card    = ctx.vision.get_node_bounds("touch_layout")
         actions = ctx.vision.get_node_bounds("action_layout")
         if card and actions:

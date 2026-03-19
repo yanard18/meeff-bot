@@ -88,7 +88,7 @@ def build_bot():
     print(f"[Bot] CLIP threshold={clip_threshold} | scoring={'on' if scoring_enabled else 'off'}")
 
     # Platform adapter
-    platform = MeeffPlatform(vision)
+    platform = MeeffPlatform(adb, vision)
 
     # Shared context
     ctx = BotContext(
