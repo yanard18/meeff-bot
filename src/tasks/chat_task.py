@@ -35,7 +35,6 @@ class ChatTask(Task):
     def _reset_session_state(self) -> None:
         self._waiting_since: float | None = None
         self._profile_id: str | None = None
-        self._turns_sent: int = 0
         self._msg_count_at_send: int = 0
         self._recorded_msg_count: int = 0
 
@@ -54,37 +53,32 @@ class ChatTask(Task):
 
         messages = self._get_messages(ctx)
         self._record_new_messages(ctx, messages)
-        max_turns = ctx.config.get("chat_max_turns", 3)
+        timeout = ctx.config.get("chat_response_timeout", 30)
 
-        # Hot-chat detection: they replied while we were waiting
-        if self._waiting_since is not None and len(messages) > self._msg_count_at_send:
-            print("[Chat] They replied — resuming conversation.")
-            self._waiting_since = None
-
+        # Waiting for their reply
         if self._waiting_since is not None:
+            if len(messages) > self._msg_count_at_send:
+                # They replied — wait for next tick to respond (natural reading delay)
+                print("[Chat] They replied — will respond next tick.")
+                self._waiting_since = None
+                return
             elapsed = time.time() - self._waiting_since
-            timeout = ctx.config.get("chat_response_timeout", 30)
             if elapsed < timeout:
                 print(f"[Chat] Waiting for reply ({elapsed:.0f}s / {timeout}s)...")
                 return
-            print("[Chat] Response timeout — leaving chat.")
+            print("[Chat] No response in 30s — moving to next person.")
             self._leave(ctx)
             return
 
-        if self._turns_sent >= max_turns:
-            print(f"[Chat] Reached {max_turns} turns — leaving chat.")
-            self._leave(ctx)
-            return
-
+        # Send exactly one message, then wait
         profile = ctx.harvest.get_profile(self._profile_id) if (ctx.harvest and self._profile_id) else None
         reply = self._generate_reply(ctx, messages, profile)
 
         if reply:
             self._msg_count_at_send = len(messages)
             self._send_message(ctx, reply)
-            self._turns_sent += 1
             self._waiting_since = time.time()
-            print(f"[Chat] Message sent (turn {self._turns_sent}/{max_turns}) — waiting for reply.")
+            print(f"[Chat] Message sent — waiting up to {timeout}s for reply.")
         else:
             print("[Chat] No reply generated — leaving chat.")
             self._leave(ctx)
