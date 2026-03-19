@@ -207,6 +207,41 @@ class AdbService:
                 os.remove(raw_path)
             return None
 
+    def _run_adb(self, args: list[str]) -> str | None:
+        """Run an ADB command given as a proper argument list (no string splitting)."""
+        try:
+            adb_path = os.environ.get("ADB_PATH", "adb")
+            prefix = ['-s', self.device_serial] if self.device_serial else []
+            result = subprocess.run(
+                [adb_path] + prefix + args,
+                capture_output=True, text=True, check=False
+            )
+            return result.stdout.strip()
+        except FileNotFoundError:
+            print("[!] Critical Error: ADB is not installed or not in your system PATH.")
+            sys.exit(1)
+
+    def type_text_human(self, text: str) -> None:
+        """Types text character by character with human-like timing.
+
+        Each character is sent as a separate ADB input command with a random
+        delay between keystrokes (60-100 WPM range). Word boundaries get a
+        slightly longer pause to mimic natural typing rhythm.
+
+        Spaces are encoded as %s per the ADB input text protocol.
+        Percent signs are escaped as %25 to avoid misinterpretation.
+        """
+        for char in text:
+            if char == '%':
+                self._run_adb(['shell', 'input', 'text', '%25'])
+            elif char == ' ':
+                self._run_adb(['shell', 'input', 'text', '%s'])
+                time.sleep(random.uniform(0.15, 0.40))  # longer pause at word boundary
+                continue
+            else:
+                self._run_adb(['shell', 'input', 'text', char])
+            time.sleep(random.uniform(0.06, 0.18))
+
     def human_scroll_down(self):
         """Simulates a natural human scroll down the page."""
         # Screen resolution is ~1080x2400.

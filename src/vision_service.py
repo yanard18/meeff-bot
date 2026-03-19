@@ -20,7 +20,7 @@ class VisionService:
             self.cached_tree = ET.fromstring(xml_content)
             return True
         except ET.ParseError as e:
-            # print(f"[VisionService] Failed to parse XML: {e}")
+            print(f"[VisionService] Failed to parse XML: {e}")
             self.cached_tree = None
             return False
 
@@ -49,6 +49,43 @@ class VisionService:
             return None
         for node in self.cached_tree.iter('node'):
             if node.attrib.get('resource-id', '').split('/')[-1] == resource_id_suffix:
+                bounds = self._parse_bounds(node)
+                if bounds:
+                    return bounds
+        return None
+
+    def get_node_text(self, resource_id_suffix: str) -> str | None:
+        """Returns the text attribute of the first node whose resource-id ends with the given suffix."""
+        if self.cached_tree is None:
+            return None
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('resource-id', '').split('/')[-1] == resource_id_suffix:
+                text = node.attrib.get('text', '').strip()
+                return text if text else None
+        return None
+
+    def get_all_node_texts(self, resource_id_suffix: str) -> list[str]:
+        """Returns text from ALL nodes whose resource-id ends with the given suffix.
+
+        Used to collect repeated elements such as profile Q&A answer sections,
+        where multiple nodes share the same resource-id suffix.
+        """
+        if self.cached_tree is None:
+            return []
+        results = []
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('resource-id', '').split('/')[-1] == resource_id_suffix:
+                text = node.attrib.get('text', '').strip()
+                if text:
+                    results.append(text)
+        return results
+
+    def get_node_bounds_by_desc(self, content_desc: str) -> dict | None:
+        """Returns the bounds dict of the first node matching the given content-desc."""
+        if self.cached_tree is None:
+            return None
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('content-desc', '') == content_desc:
                 bounds = self._parse_bounds(node)
                 if bounds:
                     return bounds
@@ -92,6 +129,8 @@ class VisionService:
             return "ACTIVE (Native Ad)"
                 
         # Identify the page based on unique fingerprints
+        if 'open_chat_layout' in res_ids:
+            return "ACTIVE (Matched Friend Profile)"
         if 'force_open_imageview' in res_ids or 'answer_layout' in res_ids:
             return "ACTIVE (Detailed Profile)"
         if 'action_layout' in res_ids or 'like_imageview' in res_ids:
@@ -152,6 +191,115 @@ class VisionService:
             if m:
                 return int(m.group(1))
         return 0
+
+    def get_chat_list_rows(self) -> list[dict]:
+        """Scans the chat list and returns visible conversation rows.
+
+        Each row dict contains:
+          name       — display name of the person
+          bounds     — tappable bounds of the row
+          has_unread — True if an unread-count badge is visible on this row
+
+        Finds rows by locating clickable containers that own a last_msg_textview
+        descendant (a resource-id we already know exists in chat list items).
+        Resource-id suffixes for name and unread badge are best-guess; confirm
+        with a UI dump if they don't match your app version.
+        """
+        if self.cached_tree is None:
+            return []
+
+        # Build parent map for upward traversal
+        parent_map = {
+            child: parent
+            for parent in self.cached_tree.iter()
+            for child in parent
+        }
+
+        _NAME_IDS    = {'nickname_textview', 'name_textview', 'user_name_textview', 'title_textview'}
+        _UNREAD_IDS  = {'unread_count_textview', 'badge_count_textview',
+                        'new_message_count_textview', 'unread_textview'}
+
+        rows = []
+        seen = set()
+
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('resource-id', '').split('/')[-1] != 'last_msg_textview':
+                continue
+
+            # Walk up to find the nearest clickable container (max 6 levels)
+            container = node
+            for _ in range(6):
+                p = parent_map.get(container)
+                if p is None:
+                    break
+                container = p
+                if container.attrib.get('clickable') == 'true':
+                    break
+
+            if container.attrib.get('clickable') != 'true':
+                continue
+
+            bounds = self._parse_bounds(container)
+            if not bounds:
+                continue
+
+            key = (bounds['x_min'], bounds['y_min'])
+            if key in seen:
+                continue
+            seen.add(key)
+
+            last_msg = node.attrib.get('text', '').strip()
+
+            name = None
+            for child in container.iter('node'):
+                if child.attrib.get('resource-id', '').split('/')[-1] in _NAME_IDS:
+                    text = child.attrib.get('text', '').strip()
+                    if text:
+                        name = text
+                        break
+
+            has_unread = any(
+                child.attrib.get('resource-id', '').split('/')[-1] in _UNREAD_IDS
+                and child.attrib.get('text', '').strip() not in ('', '0')
+                for child in container.iter('node')
+            )
+
+            if name:
+                rows.append({'name': name, 'bounds': bounds, 'has_unread': has_unread, 'last_msg': last_msg})
+
+        return rows
+
+    def get_chat_messages(self) -> list[dict]:
+        """Returns visible messages in the current chat.
+
+        Each dict has:
+          text      — message text
+          direction — 'sent' or 'received'
+
+        Direction is inferred by x-position: right-aligned bubbles (x_min > 540)
+        are sent, left-aligned are received. This heuristic works for most
+        standard chat UI layouts on 1080px screens.
+        """
+        if self.cached_tree is None:
+            return []
+
+        _MSG_IDS = {'message_textview', 'chat_message_textview',
+                    'content_textview', 'message_text_textview'}
+        messages = []
+
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('resource-id', '').split('/')[-1] not in _MSG_IDS:
+                continue
+            text = node.attrib.get('text', '').strip()
+            if not text:
+                continue
+            bounds = self._parse_bounds(node)
+            if not bounds:
+                continue
+            direction = 'sent' if bounds['x_min'] > 540 else 'received'
+            messages.append({'text': text, 'direction': direction})
+
+        return messages
 
     def get_first_matched_friend_bounds(self):
         """Returns bounds of the first (leftmost) matched friend card.

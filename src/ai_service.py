@@ -27,3 +27,17 @@ class AIService:
             raise AIServiceError("ANTHROPIC_API_KEY environment variable not set.")
         self._client = anthropic.Anthropic(api_key=api_key)
         return self._client
+
+    def chat_reply(self, system: str, messages: list[dict]) -> str:
+        """Send a conversation to the model and return its reply.
+
+        messages: list of {"role": "user"|"assistant", "content": str}
+        """
+        client = self._get_client()
+        response = client.messages.create(
+            model=self.model,
+            max_tokens=150,
+            system=system,
+            messages=messages,
+        )
+        return response.content[0].text.strip()

@@ -7,3 +7,5 @@ screenshots/
 .env
 classifier.pkl
 labeled_data/
+data/
+.claude/
