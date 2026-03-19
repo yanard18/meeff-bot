@@ -57,7 +57,11 @@ class ChatTask(Task):
 
         # Waiting for their reply
         if self._waiting_since is not None:
-            if len(messages) > self._msg_count_at_send:
+            got_reply = any(
+                m["direction"] == "received"
+                for m in messages[self._msg_count_at_send:]
+            )
+            if got_reply:
                 # They replied — wait for next tick to respond (natural reading delay)
                 print("[Chat] They replied — will respond next tick.")
                 self._waiting_since = None

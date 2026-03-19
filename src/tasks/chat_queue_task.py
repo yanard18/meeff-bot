@@ -103,7 +103,7 @@ class ChatQueueTask(Task):
     def _finish(self, ctx: BotContext) -> None:
         self._queue.clear()
         self._mode_started = None
-        ctx.platform.navigate_to_likes()
+        ctx.platform.navigate_to_swipe()
 
     def _chat_timer_due(self) -> bool:
         return self._scheduler.is_due("chat_queue", self._chat_interval)
