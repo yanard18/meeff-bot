@@ -24,10 +24,15 @@ class SwipeTask(Task):
         interval_matches = ctx.config.get("matched_check_interval_minutes", 5) * 60
         interval_likes = ctx.config.get("likes_check_interval_minutes", 10) * 60
 
-        if (self._scheduler.is_due("matches", interval_matches)
-                or self._scheduler.is_due("likes", interval_likes)):
-            self._scheduler.reset("matches")
-            self._scheduler.reset("likes")
+        matches_due = self._scheduler.is_due("matches", interval_matches)
+        likes_due = self._scheduler.is_due("likes", interval_likes)
+
+        if matches_due or likes_due:
+            # Reset only the timer that fired — the other keeps its own clock.
+            if matches_due:
+                self._scheduler.reset("matches")
+            if likes_due:
+                self._scheduler.reset("likes")
             print("[Swipe] Periodic check — navigating to chat list...")
             ctx.platform.navigate_to_chat_list()
         else:

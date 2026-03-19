@@ -91,10 +91,16 @@ def build_bot():
     # Platform adapter
     platform = MeeffPlatform(adb, vision)
 
-    # Scheduler + status line (must exist before BotContext)
+    # Scheduler + status bar (must exist before BotContext)
     scheduler = PeriodicScheduler()
     likes_interval = config.get("likes_check_interval_minutes", 10) * 60
     matched_interval = config.get("matched_check_interval_minutes", 5) * 60
+
+    # Prime both timers so the first check fires after the configured interval,
+    # not immediately on startup (scheduler._last defaults to epoch 0).
+    scheduler.reset("likes")
+    scheduler.reset("matches")
+
     status = StatusBar(scheduler)
     status.register_timer("Likes check", "likes", likes_interval)
     status.register_timer("Matched check", "matches", matched_interval)
