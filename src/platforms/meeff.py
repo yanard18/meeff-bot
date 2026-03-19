@@ -14,23 +14,15 @@ class MeeffPlatform(Platform):
     """
 
     def __init__(self, adb: AdbService, vision: VisionService) -> None:
-        self._adb    = adb
+        self._adb = adb
         self._vision = vision
 
     @property
     def app_package(self) -> str:
         return "com.noyesrun.meeff.kr"
 
-    # ------------------------------------------------------------------
-    # State detection
-    # ------------------------------------------------------------------
-
     def detect_state(self) -> str:
         return self._vision.determine_app_state()
-
-    # ------------------------------------------------------------------
-    # Navigation
-    # ------------------------------------------------------------------
 
     def navigate_to_swipe(self) -> None:
         self._vision.refresh_screen_data()
@@ -52,24 +44,10 @@ class MeeffPlatform(Platform):
             self._adb.human_tap(like_tab, name="Like Tab")
             time.sleep(1.5)
 
-    # ------------------------------------------------------------------
-    # Chat list queries
-    # ------------------------------------------------------------------
-
     def get_matched_friends(self) -> list[MatchedFriend]:
-        count = self._vision.get_matched_friends_count()
-        if count == 0:
-            return []
         bounds = self._vision.get_first_matched_friend_bounds()
-        if bounds:
-            return [MatchedFriend(bounds=bounds)]
-        return []
+        return [MatchedFriend(bounds=bounds)] if bounds else []
 
     def get_liked_profiles(self) -> list[LikedProfile]:
-        count = self._vision.get_like_count()
-        if count == 0:
-            return []
         bounds = self._vision.get_first_liked_profile_bounds()
-        if bounds:
-            return [LikedProfile(bounds=bounds)]
-        return []
+        return [LikedProfile(bounds=bounds)] if bounds else []

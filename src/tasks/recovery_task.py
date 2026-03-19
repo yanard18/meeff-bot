@@ -23,8 +23,7 @@ class RecoveryTask(Task):
         self._unknown_streak = 0
 
     def is_eligible(self, state: str) -> bool:
-        # Catches "NOT OPENED" and anything else no other task claimed.
-        return True  # Orchestrator only reaches this if all higher-priority tasks declined.
+        return True
 
     def run(self, ctx: BotContext, state: str) -> None:
         if state == "NOT OPENED":

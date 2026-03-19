@@ -23,10 +23,6 @@ class Orchestrator:
         # Sort once at startup; priority never changes at runtime.
         self._tasks = sorted(tasks, key=lambda t: t.priority, reverse=True)
 
-    # ------------------------------------------------------------------
-    # System checks
-    # ------------------------------------------------------------------
-
     def verify_system(self) -> None:
         """Abort early if the device is not ready."""
         print("[*] Checking system and device...")
@@ -45,10 +41,6 @@ class Orchestrator:
             time.sleep(5)
 
         print("[+] System checks passed.")
-
-    # ------------------------------------------------------------------
-    # Main loop
-    # ------------------------------------------------------------------
 
     def run(self) -> None:
         self.verify_system()

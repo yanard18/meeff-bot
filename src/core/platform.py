@@ -23,18 +23,10 @@ class Platform(ABC):
     Swapping MeeffPlatform for InstagramPlatform requires zero task changes.
     """
 
-    # ------------------------------------------------------------------
-    # Identity
-    # ------------------------------------------------------------------
-
     @property
     @abstractmethod
     def app_package(self) -> str:
         """Android package name, e.g. 'com.noyesrun.meeff.kr'."""
-
-    # ------------------------------------------------------------------
-    # State detection
-    # ------------------------------------------------------------------
 
     @abstractmethod
     def detect_state(self) -> str:
@@ -43,10 +35,6 @@ class Platform(ABC):
         Passed verbatim to Task.is_eligible(), so tasks can match it however
         they like (substring, equality, regex, …).
         """
-
-    # ------------------------------------------------------------------
-    # Navigation
-    # ------------------------------------------------------------------
 
     @abstractmethod
     def navigate_to_swipe(self) -> None:
@@ -59,10 +47,6 @@ class Platform(ABC):
     @abstractmethod
     def navigate_to_likes(self) -> None:
         """Go to the incoming-likes / visitor screen."""
-
-    # ------------------------------------------------------------------
-    # Chat list queries
-    # ------------------------------------------------------------------
 
     @abstractmethod
     def get_matched_friends(self) -> list[MatchedFriend]:

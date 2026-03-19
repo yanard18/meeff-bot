@@ -22,7 +22,7 @@ class SwipeTask(Task):
 
     def run(self, ctx: BotContext, state: str) -> None:
         interval_matches = ctx.config.get("matched_check_interval_minutes", 5) * 60
-        interval_likes   = ctx.config.get("likes_check_interval_minutes", 10) * 60
+        interval_likes = ctx.config.get("likes_check_interval_minutes", 10) * 60
 
         if (self._scheduler.is_due("matches", interval_matches)
                 or self._scheduler.is_due("likes", interval_likes)):

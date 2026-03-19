@@ -75,15 +75,15 @@ def build_bot():
     from src.tasks.recovery_task import RecoveryTask
 
     # Services
-    adb    = AdbService()
+    adb = AdbService()
     vision = VisionService(adb)
     config = adb.config
 
-    ai_conf         = config.get("ai", {})
-    ai              = AIService(ai_conf)
+    ai_conf = config.get("ai", {})
+    ai = AIService(ai_conf)
     scoring_enabled = ai_conf.get("enabled", False)
-    clip_threshold  = ai_conf.get("clip_threshold", 0.6)
-    critic          = ClipCritic(threshold=clip_threshold)
+    clip_threshold = ai_conf.get("clip_threshold", 0.6)
+    critic = ClipCritic(threshold=clip_threshold)
 
     print(f"[Bot] CLIP threshold={clip_threshold} | scoring={'on' if scoring_enabled else 'off'}")
 

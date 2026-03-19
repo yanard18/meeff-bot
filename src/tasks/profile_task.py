@@ -25,7 +25,7 @@ class ProfileEvalTask(Task):
 
         print("[Profile] Reading detailed profile...")
 
-        photo_bounds    = ctx.vision.get_node_bounds("photo_imageview")
+        photo_bounds = ctx.vision.get_node_bounds("photo_imageview")
         screenshot_path = ctx.adb.take_screenshot(crop_bounds=photo_bounds)
         time.sleep(1)
 
@@ -50,16 +50,12 @@ class ProfileEvalTask(Task):
         time.sleep(think)
 
         like = ctx.vision.get_node_bounds("like_imageview")
-        ok   = ctx.adb.human_tap(like, name="Like") if like else False
+        ok = ctx.adb.human_tap(like, name="Like") if like else False
         print("[Profile] Liked." if ok else "[Profile] Failed to tap Like.")
 
         delay = random.uniform(t_conf["delay_after_like_min"], t_conf["delay_after_like_max"])
         print(f"[Profile] Waiting {delay:.2f}s...\n")
         time.sleep(delay)
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
 
     def _evaluate(self, ctx: BotContext, screenshot_path: str) -> bool:
         if not ctx.scoring_enabled:
@@ -70,10 +66,10 @@ class ProfileEvalTask(Task):
     def _save_sample(self, screenshot_path: str, liked: bool) -> None:
         if not screenshot_path or not os.path.exists(screenshot_path):
             return
-        label    = "liked" if liked else "disliked"
+        label = "liked" if liked else "disliked"
         dest_dir = os.path.join("labeled_data", label)
         os.makedirs(dest_dir, exist_ok=True)
-        ext  = os.path.splitext(screenshot_path)[1] or ".jpg"
+        ext = os.path.splitext(screenshot_path)[1] or ".jpg"
         dest = os.path.join(dest_dir, f"{int(time.time())}{ext}")
         shutil.copy(screenshot_path, dest)
         print(f"[Profile] Saved training sample → {dest}")
