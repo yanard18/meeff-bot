@@ -27,7 +27,12 @@ class DialogTask(Task):
     def run(self, ctx: BotContext, state: str) -> None:
         if state == "ACTIVE (Ad)":
             print("[Dialog] WebView ad — closing via close button...")
-            ctx.adb.human_tap(ctx.config["coordinates"]["ad_close_button"], margin=10, name="Ad Close")
+            bounds = (ctx.vision.get_node_bounds_by_desc("Close ad")
+                      or ctx.vision.get_node_bounds_by_desc("Ad closed"))
+            if bounds:
+                ctx.adb.human_tap(bounds, margin=10, name="Ad Close")
+            else:
+                ctx.adb.press_back()
 
         elif state == "ACTIVE (Native Ad)":
             print("[Dialog] Native ad — pressing back...")

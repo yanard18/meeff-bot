@@ -54,6 +54,17 @@ class VisionService:
                     return bounds
         return None
 
+    def get_node_bounds_by_desc(self, content_desc: str) -> dict | None:
+        """Returns the bounds dict of the first node matching the given content-desc."""
+        if self.cached_tree is None:
+            return None
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('content-desc', '') == content_desc:
+                bounds = self._parse_bounds(node)
+                if bounds:
+                    return bounds
+        return None
+
     def determine_app_state(self):
         """High-level method to determine the overall app state."""
         success = self.refresh_screen_data()
