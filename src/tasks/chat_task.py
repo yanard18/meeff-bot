@@ -2,6 +2,7 @@ import time
 
 from ..core.task import Task
 from ..core.context import BotContext
+from ..core.states import CHAT_WITH_PERSON
 
 
 class ChatTask(Task):
@@ -39,11 +40,11 @@ class ChatTask(Task):
         self._recorded_msg_count: int = 0
 
     def is_eligible(self, state: str) -> bool:
-        return "Chat With Person" in state
+        return state == CHAT_WITH_PERSON
 
     def run(self, ctx: BotContext, state: str) -> None:
-        if not ctx.scoring_enabled:
-            print("[Chat] AI disabled — exiting chat.")
+        if not ctx.chat_enabled:
+            print("[Chat] Chat AI disabled — exiting chat.")
             self._leave(ctx)
             return
 
@@ -94,7 +95,8 @@ class ChatTask(Task):
     def _leave(self, ctx: BotContext) -> None:
         ctx.adb.press_back()
         self._reset_session_state()
-        time.sleep(2)
+        delay = ctx.config.get("timing", {}).get("back_navigation_delay", 2.0)
+        time.sleep(delay)
 
     def _get_messages(self, ctx: BotContext) -> list[dict]:
         """Read visible messages from the current chat screen."""

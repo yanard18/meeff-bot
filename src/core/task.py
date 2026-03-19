@@ -12,7 +12,7 @@ class Task(ABC):
         is_eligible() returns True when the right UI is on screen.
         needs_navigation() always returns False (default).
 
-    Scheduled tasks (ChatListTask):
+    Scheduled tasks (ChatQueueTask):
         is_eligible() returns True when a timer has fired, regardless of
         the current UI.
         needs_navigation() returns True when the timer fired but the bot is

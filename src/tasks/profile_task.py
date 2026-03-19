@@ -5,6 +5,7 @@ import time
 
 from ..core.task import Task
 from ..core.context import BotContext
+from ..core.states import DETAILED_PROFILE
 
 
 class ProfileEvalTask(Task):
@@ -17,7 +18,7 @@ class ProfileEvalTask(Task):
     priority = 5
 
     def is_eligible(self, state: str) -> bool:
-        return "Detailed Profile" in state
+        return state == DETAILED_PROFILE
 
     def run(self, ctx: BotContext, state: str) -> None:
         t_conf = ctx.config["timing"]
@@ -72,8 +73,8 @@ class ProfileEvalTask(Task):
         time.sleep(delay)
 
     def _evaluate(self, ctx: BotContext, screenshot_path: str) -> bool:
-        if not ctx.scoring_enabled:
-            print("[Profile] Scoring disabled — defaulting to like.")
+        if not ctx.clip_enabled:
+            print("[Profile] CLIP scoring disabled — defaulting to like.")
             return True
         return ctx.critic.evaluate(screenshot_path).liked
 

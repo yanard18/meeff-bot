@@ -2,14 +2,7 @@ import time
 
 from ..core.task import Task
 from ..core.context import BotContext
-
-_DIALOG_STATES = {
-    "ACTIVE (Ad)",
-    "ACTIVE (Native Ad)",
-    "ACTIVE (Match Complete)",
-    "ACTIVE (Suggest Meeff)",
-    "ACTIVE (Quit Dialog)",
-}
+from ..core.states import DIALOG_STATES, AD, NATIVE_AD, MATCH_COMPLETE, SUGGEST_MEEFF, QUIT_DIALOG
 
 
 class DialogTask(Task):
@@ -22,10 +15,10 @@ class DialogTask(Task):
     priority = 100
 
     def is_eligible(self, state: str) -> bool:
-        return state in _DIALOG_STATES
+        return state in DIALOG_STATES
 
     def run(self, ctx: BotContext, state: str) -> None:
-        if state == "ACTIVE (Ad)":
+        if state == AD:
             print("[Dialog] WebView ad — closing via close button...")
             bounds = (ctx.vision.get_node_bounds_by_desc("Close ad")
                       or ctx.vision.get_node_bounds_by_desc("Ad closed"))
@@ -34,11 +27,11 @@ class DialogTask(Task):
             else:
                 ctx.adb.press_back()
 
-        elif state == "ACTIVE (Native Ad)":
+        elif state == NATIVE_AD:
             print("[Dialog] Native ad — pressing back...")
             ctx.adb.press_back()
 
-        elif state == "ACTIVE (Match Complete)":
+        elif state == MATCH_COMPLETE:
             print("[Dialog] Match complete — dismissing...")
             bounds = ctx.vision.get_node_bounds("top_left_imageview")
             if bounds:
@@ -46,7 +39,7 @@ class DialogTask(Task):
             else:
                 ctx.adb.press_back()
 
-        elif state == "ACTIVE (Suggest Meeff)":
+        elif state == SUGGEST_MEEFF:
             print("[Dialog] Suggest Meeff dialog — dismissing...")
             bounds = ctx.vision.get_node_bounds("close_textview")
             if bounds:
@@ -54,7 +47,7 @@ class DialogTask(Task):
             else:
                 ctx.adb.press_back()
 
-        elif state == "ACTIVE (Quit Dialog)":
+        elif state == QUIT_DIALOG:
             print("[Dialog] Quit dialog — tapping Cancel...")
             bounds = ctx.vision.get_node_bounds("negativeButton")
             if bounds:

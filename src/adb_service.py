@@ -85,6 +85,20 @@ class AdbService:
             return content
         return None
 
+    def get_screen_width(self) -> int:
+        """Returns the physical screen width in pixels.
+
+        Uses 'wm size' which reports the override or real resolution.
+        Falls back to 1080 if the command fails or output is unparseable.
+        """
+        import re
+        output = self.run_command("shell wm size", check=False) or ""
+        # Output: "Physical size: 1080x2400" or "Override size: ..."
+        m = re.search(r'(\d+)x(\d+)', output)
+        if m:
+            return int(m.group(1))
+        return 1080  # safe default for most modern phones
+
     def press_back(self):
         """Presses the Android back button."""
         self.run_command("shell input keyevent 4")

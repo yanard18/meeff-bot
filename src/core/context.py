@@ -26,7 +26,8 @@ class BotContext:
     critic: "ClipCritic"
     config: dict
     platform: "Platform"
-    scoring_enabled: bool
+    clip_enabled: bool   # CLIP profile scoring (like/nope decision)
+    chat_enabled: bool   # AI chat replies (Claude API)
     status: "StatusBar | None" = field(default=None)
     harvest: "HarvestService | None" = field(default=None)
     message_generator: "MessageGenerator | None" = field(default=None)

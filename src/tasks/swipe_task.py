@@ -2,14 +2,15 @@ import time
 
 from ..core.task import Task
 from ..core.context import BotContext
+from ..core.states import SWIPE_MODE
 
 
 class SwipeTask(Task):
     """Opens profile cards on the swipe deck for evaluation.
 
     Purely reactive: eligible only when the Swipe Mode UI is active.
-    Timer logic has moved to ChatListTask, which preempts this task
-    (priority 10 > 5) when a check interval fires.
+    Timer logic lives in ChatQueueTask, which preempts this task
+    (priority 15 > 5) when a check interval fires.
 
     Priority 5.
     """
@@ -17,7 +18,7 @@ class SwipeTask(Task):
     priority = 5
 
     def is_eligible(self, state: str) -> bool:
-        return "Swipe Mode" in state
+        return state == SWIPE_MODE
 
     def run(self, ctx: BotContext, state: str) -> None:
         print("[Swipe] Tapping profile photo to open detailed view...")

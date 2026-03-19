@@ -4,6 +4,7 @@ from ..core.task import Task
 from ..core.context import BotContext
 from ..core.platform import ChatCandidate
 from ..core.scheduler import PeriodicScheduler
+from ..core.states import CHAT_LIST
 
 
 def _prioritize(candidates: list[ChatCandidate]) -> list[ChatCandidate]:
@@ -21,18 +22,19 @@ def _prioritize(candidates: list[ChatCandidate]) -> list[ChatCandidate]:
 class ChatQueueTask(Task):
     """Works through a prioritized queue of chat candidates on the Chat List page.
 
-    Flow each tick (while "Chat List" is on screen):
-      1. If this is a new session: reset scheduler timers, discover candidates,
-         build the priority queue.
-      2. If session has timed out: finish and navigate to likes.
-      3. If queue is non-empty: pop the top candidate and tap to open it.
+    Owns all three periodic timers (chat_queue, matches, likes). Replaces the
+    former ChatListTask which was a thin wrapper around the same timer logic.
+
+    Triggers navigation when any timer fires and we are not on the chat list.
+    Once on the chat list:
+      1. New session: reset due timers, discover & prioritize candidates.
+      2. Session timeout: finish → navigate to swipe.
+      3. Queue non-empty: pop top candidate and tap to open.
          ChatTask (priority 50) handles the conversation; when it presses back,
-         state returns to "Chat List" and we run again for the next candidate.
-      4. If queue is empty after working through it: finish → likes page.
+         state returns to CHAT_LIST and this task runs again.
+      4. Queue empty: finish → navigate to swipe.
 
-    LikePageTask (priority 10) handles the likes page once we navigate there.
-
-    Priority 15 — above ChatListTask (10) so it controls the chat list page.
+    Priority 15.
     """
 
     priority = 15
@@ -58,33 +60,33 @@ class ChatQueueTask(Task):
     # ------------------------------------------------------------------
 
     def is_eligible(self, state: str) -> bool:
-        return "Chat List" in state or self._chat_timer_due()
+        return state == CHAT_LIST or self._any_timer_due()
 
     def needs_navigation(self, state: str) -> bool:
-        return self._chat_timer_due() and "Chat List" not in state
+        return self._any_timer_due() and state != CHAT_LIST
 
     def navigate_to(self, ctx: BotContext) -> None:
-        print("[ChatQueue] Chat timer fired — navigating to chat list...")
-        self._scheduler.reset("chat_queue")
+        print("[ChatQueue] Timer fired — navigating to chat list...")
+        self._reset_due_timers()
         ctx.platform.navigate_to_chat_list()
 
     def cancel_navigation(self, ctx: BotContext) -> None:
-        print("[ChatQueue] Navigation blocked — resetting chat timer, will retry later.")
-        self._scheduler.reset("chat_queue")
+        print("[ChatQueue] Navigation blocked — resetting timers, will retry later.")
+        self._reset_due_timers()
 
     def run(self, ctx: BotContext, state: str) -> None:
         # Session timeout guard
         if self._mode_started and time.time() - self._mode_started > self._max_session:
-            print("[ChatQueue] Session timeout — moving to likes.")
+            print("[ChatQueue] Session timeout — moving to swipe.")
             self._finish(ctx)
             return
 
         if not self._queue:
-            # New session starting: reset any due timers then discover candidates
+            # New session: reset any due timers then discover candidates
             self._reset_due_timers()
             candidates = ctx.platform.get_chat_candidates()
             if not candidates:
-                print("[ChatQueue] No chat candidates — moving to likes.")
+                print("[ChatQueue] No chat candidates — moving to swipe.")
                 self._finish(ctx)
                 return
             self._queue = _prioritize(candidates)
@@ -105,13 +107,18 @@ class ChatQueueTask(Task):
         self._mode_started = None
         ctx.platform.navigate_to_swipe()
 
-    def _chat_timer_due(self) -> bool:
-        return self._scheduler.is_due("chat_queue", self._chat_interval)
+    def _any_timer_due(self) -> bool:
+        return (
+            self._scheduler.is_due("chat_queue", self._chat_interval)
+            or self._scheduler.is_due("matches", self._matches_interval)
+            or self._scheduler.is_due("likes", self._likes_interval)
+        )
 
     def _reset_due_timers(self) -> None:
-        if self._scheduler.is_due("matches", self._matches_interval):
-            self._scheduler.reset("matches")
-        if self._scheduler.is_due("likes", self._likes_interval):
-            self._scheduler.reset("likes")
-        if self._chat_timer_due():
-            self._scheduler.reset("chat_queue")
+        for key, interval in (
+            ("chat_queue", self._chat_interval),
+            ("matches", self._matches_interval),
+            ("likes", self._likes_interval),
+        ):
+            if self._scheduler.is_due(key, interval):
+                self._scheduler.reset(key)

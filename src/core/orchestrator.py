@@ -58,7 +58,9 @@ class Orchestrator:
                 print(f"[Orchestrator] {state}")
 
                 if status:
-                    status.update_mode(state.removeprefix("ACTIVE (").removesuffix(")"))
+                    # Strip "ACTIVE (" prefix and ")" suffix for display, falling back to the full string
+                    display = state.removeprefix("ACTIVE (").removesuffix(")")
+                    status.update_mode(display)
 
                 nav_threshold = self._ctx.config.get("nav_failure_threshold", 3)
 
