@@ -2,6 +2,7 @@ import time
 
 from ..core.task import Task
 from ..core.context import BotContext
+from ..core.states import NOT_OPENED
 
 
 class RecoveryTask(Task):
@@ -26,7 +27,7 @@ class RecoveryTask(Task):
         return True
 
     def run(self, ctx: BotContext, state: str) -> None:
-        if state == "NOT OPENED":
+        if state == NOT_OPENED:
             self._unknown_streak = 0
             self._launch_attempts += 1
             if self._launch_attempts > 3:

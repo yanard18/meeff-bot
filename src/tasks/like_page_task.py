@@ -2,6 +2,7 @@ import time
 
 from ..core.task import Task
 from ..core.context import BotContext
+from ..core.states import LIKE_VISITOR_PAGE
 
 
 class LikePageTask(Task):
@@ -14,7 +15,7 @@ class LikePageTask(Task):
     priority = 10
 
     def is_eligible(self, state: str) -> bool:
-        return "Like/Visitor Page" in state
+        return state == LIKE_VISITOR_PAGE
 
     def run(self, ctx: BotContext, state: str) -> None:
         profiles = ctx.platform.get_liked_profiles()

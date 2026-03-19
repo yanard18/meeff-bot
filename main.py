@@ -1,56 +1,8 @@
 #!/usr/bin/env python3
-import os
-import subprocess
-import time
-
 from dotenv import load_dotenv
 load_dotenv()
 
-
-EMULATOR_BIN = os.path.expanduser("~/android-sdk/emulator/emulator")
-ADB_BIN      = os.path.expanduser("~/android-sdk/platform-tools/adb")
-AVD_NAME     = "meeff_bot"
-
-
-def is_emulator_running():
-    """Returns True if an Android emulator is already listed by adb."""
-    try:
-        result = subprocess.run(
-            [ADB_BIN, "devices"],
-            capture_output=True, text=True, timeout=10
-        )
-        lines = result.stdout.strip().splitlines()[1:]  # skip header
-        return any("emulator" in line and "device" in line for line in lines)
-    except Exception:
-        return False
-
-
-def start_emulator():
-    """Launches the emulator in the background and waits until adb sees it."""
-    print(f"[Emulator] Starting AVD '{AVD_NAME}'...")
-    subprocess.Popen(
-        [EMULATOR_BIN, "-avd", AVD_NAME, "-gpu", "host",
-         "-memory", "4096", "-no-metrics"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True   # detach so it survives if this shell closes
-    )
-
-    print("[Emulator] Waiting for device to come online", end="", flush=True)
-    for _ in range(60):          # up to 2 minutes
-        time.sleep(2)
-        print(".", end="", flush=True)
-        if is_emulator_running():
-            print(" ready!")
-            subprocess.run(
-                [ADB_BIN, "wait-for-device", "shell",
-                 "while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done"],
-                timeout=120, capture_output=True
-            )
-            print("[Emulator] Boot completed.")
-            return
-
-    print("\n[Emulator] Timed out waiting for emulator. Proceeding anyway...")
+from src import emulator
 
 
 def build_bot():
@@ -75,7 +27,6 @@ def build_bot():
     from src.tasks.matched_profile_task import MatchedProfileTask
     from src.tasks.chat_task import ChatTask
     from src.tasks.chat_queue_task import ChatQueueTask
-    from src.tasks.chat_list_task import ChatListTask
     from src.tasks.like_page_task import LikePageTask
     from src.tasks.profile_task import ProfileEvalTask
     from src.tasks.swipe_task import SwipeTask
@@ -91,34 +42,32 @@ def build_bot():
 
     ai_conf = config.get("ai", {})
     ai = AIService(ai_conf)
-    scoring_enabled = ai_conf.get("enabled", False)
+    clip_enabled = ai_conf.get("clip_enabled", ai_conf.get("enabled", False))
+    chat_enabled = ai_conf.get("chat_enabled", ai_conf.get("enabled", False))
     clip_threshold = ai_conf.get("clip_threshold", 0.6)
     critic = ClipCritic(threshold=clip_threshold)
 
     persona_config = config.get("chat_persona", {})
     message_generator = AIMessageGenerator(ai, persona_config) if persona_config else None
 
-    print(f"[Bot] CLIP threshold={clip_threshold} | scoring={'on' if scoring_enabled else 'off'}")
+    print(f"[Bot] CLIP threshold={clip_threshold} | clip={'on' if clip_enabled else 'off'} | chat={'on' if chat_enabled else 'off'}")
 
     # Platform adapter
     platform = MeeffPlatform(adb, vision)
 
     # Scheduler + status bar (must exist before BotContext)
     scheduler = PeriodicScheduler()
-    likes_interval   = config.get("likes_check_interval_minutes", 10) * 60
-    matched_interval = config.get("matched_check_interval_minutes", 5) * 60
-    chat_interval    = config.get("chat_queue_interval_minutes", 5) * 60
+    likes_interval = config.get("likes_check_interval_minutes", 10) * 60
+    chat_interval  = config.get("chat_queue_interval_minutes", 5) * 60
 
-    # Prime both timers so the first check fires after the configured interval,
+    # Prime timers so the first check fires after the configured interval,
     # not immediately on startup (scheduler._last defaults to epoch 0).
     scheduler.reset("likes")
-    scheduler.reset("matches")
     scheduler.reset("chat_queue")
 
     status = StatusBar(scheduler)
-    status.register_timer("Likes check",   "likes",      likes_interval)
-    status.register_timer("Matched check", "matches",    matched_interval)
-    status.register_timer("Chat queue",    "chat_queue", chat_interval)
+    status.register_timer("Likes check", "likes",      likes_interval)
+    status.register_timer("Chat queue",  "chat_queue", chat_interval)
 
     ctx = BotContext(
         adb=adb,
@@ -127,7 +76,8 @@ def build_bot():
         critic=critic,
         config=config,
         platform=platform,
-        scoring_enabled=scoring_enabled,
+        clip_enabled=clip_enabled,
+        chat_enabled=chat_enabled,
         status=status,
         harvest=harvest,
         message_generator=message_generator,
@@ -140,8 +90,7 @@ def build_bot():
         DialogTask(),                                                                                   # priority 100
         MatchedProfileTask(),                                                                           # priority  60
         ChatTask(),                                                                                     # priority  50
-        ChatQueueTask(scheduler, matched_interval, likes_interval, chat_interval, chat_session_max),    # priority  15
-        ChatListTask(scheduler, matched_interval, likes_interval),                                      # priority  10
+        ChatQueueTask(scheduler, likes_interval, chat_interval, chat_session_max),    # priority  15
         LikePageTask(),                                                                  # priority  10
         ProfileEvalTask(),                                                               # priority   5
         SwipeTask(),                                                                     # priority   5
@@ -152,8 +101,8 @@ def build_bot():
 
 
 if __name__ == '__main__':
-    if not is_emulator_running():
-        start_emulator()
+    if not emulator.is_running():
+        emulator.start()
     else:
         print("[Emulator] Already running.")
 

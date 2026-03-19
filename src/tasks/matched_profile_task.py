@@ -2,6 +2,7 @@ import time
 
 from ..core.task import Task
 from ..core.context import BotContext
+from ..core.states import MATCHED_FRIEND_PROFILE
 
 
 class MatchedProfileTask(Task):
@@ -23,7 +24,7 @@ class MatchedProfileTask(Task):
     priority = 60
 
     def is_eligible(self, state: str) -> bool:
-        return "Matched Friend Profile" in state
+        return state == MATCHED_FRIEND_PROFILE
 
     def run(self, ctx: BotContext, state: str) -> None:
         print("[MatchedProfile] Harvesting profile data...")

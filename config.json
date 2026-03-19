@@ -10,18 +10,19 @@
         "thinking_before_like_max": 5.0,
         "delay_after_like_min": 3.0,
         "delay_after_like_max": 6.0,
-        "delay_after_opening_profile": 2.0
+        "delay_after_opening_profile": 2.0,
+        "back_navigation_delay": 2.0
     },
     "behavior": {
         "scrolls_weights": [5, 25, 40, 30]
     },
     "ai": {
-        "enabled": true,
+        "clip_enabled": true,
+        "chat_enabled": true,
         "model": "claude-haiku-4-5-20251001",
         "clip_threshold": 0.6
     },
     "likes_check_interval_minutes": 10,
-    "matched_check_interval_minutes": 5,
     "device_serial": "emulator-5554",
     "chat_response_timeout": 30,
     "chat_queue_interval_minutes": 5,
