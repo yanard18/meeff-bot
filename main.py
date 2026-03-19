@@ -97,18 +97,30 @@ def build_bot():
     # Task registry — Orchestrator sorts by priority automatically
     chat_session_max = config.get("chat_session_max_seconds", 600)
 
+    # Optional tasks — keyed by the name used in config["active_tasks"].
+    # DialogTask and RecoveryTask are always active (bot infrastructure).
+    active = set(config.get("active_tasks", [
+        "matched_profile", "chat", "chat_queue", "like_page",
+        "profile_eval", "swipe", "sleep", "switch_region",
+    ]))
+
+    optional = {
+        "matched_profile": MatchedProfileTask(),                                         # priority  60
+        "chat":            ChatTask(),                                                   # priority  50
+        "sleep":           SleepTask(scheduler, sleep_interval, sleep_duration),        # priority  20
+        "chat_queue":      ChatQueueTask(scheduler, likes_interval, chat_interval, chat_session_max),  # priority  15
+        "switch_region":   SwitchRegionTask(scheduler, region_interval, region_nations),# priority   7
+        "like_page":       LikePageTask(),                                               # priority  10
+        "profile_eval":    ProfileEvalTask(),                                            # priority   5
+        "swipe":           SwipeTask(),                                                  # priority   5
+    }
+
     tasks = [
-        DialogTask(),                                                                    # priority 100
-        MatchedProfileTask(),                                                            # priority  60
-        ChatTask(),                                                                      # priority  50
-        SleepTask(scheduler, sleep_interval, sleep_duration),                           # priority  20
-        SwitchRegionTask(scheduler, region_interval, region_nations),                   # priority   7
-        ChatQueueTask(scheduler, likes_interval, chat_interval, chat_session_max),      # priority  15
-        LikePageTask(),                                                                  # priority  10
-        ProfileEvalTask(),                                                               # priority   5
-        SwipeTask(),                                                                     # priority   5
-        RecoveryTask(),                                                                  # priority   1
+        DialogTask(),                                                                    # priority 100 (always)
+        *[t for name, t in optional.items() if name in active],
+        RecoveryTask(),                                                                  # priority   1 (always)
     ]
+    print(f"[Bot] Active tasks: {sorted(active)}")
 
     return Orchestrator(ctx, tasks), store
 

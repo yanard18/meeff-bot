@@ -30,9 +30,10 @@
     "chat_session_max_seconds": 600,
     "sleep_interval_minutes": 30,
     "sleep_duration_minutes": 20,
+    "active_tasks": ["swipe", "profile_eval", "sleep"],
     "region_rotation": {
         "interval_minutes": 8,
-        "nationalities": ["Russia", "Ukraine", "Kazakhstan", "United States", "South Korea"]
+        "nationalities": ["Russia", "Ukraine"]
     },
     "chat_persona": {
         "system_prompt": "You are a young, casual person chatting on a dating app. Keep replies very short (1-2 sentences max). Match the language of the other person — reply in Korean if they write Korean, English if they write English. Be warm, playful, and genuine. Never mention you are an AI.",
