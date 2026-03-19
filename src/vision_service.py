@@ -92,6 +92,18 @@ class VisionService:
                     results.append(text)
         return results
 
+    def get_node_bounds_by_text(self, resource_id_suffix: str, text: str) -> dict | None:
+        """Bounds of the first node matching resource-id suffix AND text (case-insensitive)."""
+        if self.cached_tree is None:
+            return None
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('resource-id', '').split('/')[-1] == resource_id_suffix:
+                if node.attrib.get('text', '').strip().lower() == text.lower():
+                    bounds = self._parse_bounds(node)
+                    if bounds:
+                        return bounds
+        return None
+
     def get_node_bounds_by_desc(self, content_desc: str) -> dict | None:
         """Bounds of the first node with the given content-desc."""
         if self.cached_tree is None:

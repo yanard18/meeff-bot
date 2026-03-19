@@ -6,7 +6,7 @@ from ..core.states import (
     NOT_OPENED, UNKNOWN_FAILED,
     QUIT_DIALOG, SUGGEST_MEEFF, MATCH_COMPLETE, AD, NATIVE_AD,
     MATCHED_FRIEND_PROFILE, DETAILED_PROFILE, SWIPE_MODE, FIND_PAGE,
-    CHAT_WITH_PERSON, CHAT_LIST, MY_PROFILE, SEARCH_FILTERS,
+    CHAT_WITH_PERSON, CHAT_LIST, MY_PROFILE, SEARCH_FILTERS, NATIONALITY_PICKER,
     LIKE_VISITOR_PAGE, TODAY_PAGE, UNKNOWN_SCREEN,
 )
 from ..adb_service import AdbService
@@ -30,6 +30,7 @@ _SCREEN_FINGERPRINTS = [
     (CHAT_WITH_PERSON,       lambda ids, _: 'message_edittext' in ids or 'send_imageview' in ids),
     (CHAT_LIST,              lambda ids, _: 'last_msg_textview' in ids or 'local_time_textview' in ids),
     (MY_PROFILE,             lambda ids, _: 'plus_layout' in ids or 'ruby_count_textview' in ids),
+    (NATIONALITY_PICKER,     lambda ids, _: 'nationality_checkbox' in ids),
     (SEARCH_FILTERS,         lambda ids, _: 'distance_seekbar' in ids),
     (LIKE_VISITOR_PAGE,      lambda ids, _: 'option_imageview' in ids or 'no_result_title_textview' in ids),
     (TODAY_PAGE,             lambda ids, _: 'refresh_layout' in ids),
