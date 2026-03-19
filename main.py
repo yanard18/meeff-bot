@@ -118,13 +118,13 @@ def build_bot():
 
     # Task registry — Orchestrator sorts by priority automatically
     tasks = [
-        DialogTask(),           # priority 100 — dialogs always first
-        ChatTask(),             # priority  50 — hold chat until decided to leave
-        ChatListTask(),         # priority  10 — matched friends expire!
-        LikePageTask(),         # priority  10
-        ProfileEvalTask(),      # priority   5
-        SwipeTask(scheduler),   # priority   5
-        RecoveryTask(),         # priority   1 — fallback
+        DialogTask(),                                                   # priority 100
+        ChatTask(),                                                     # priority  50
+        ChatListTask(scheduler, matched_interval, likes_interval),      # priority  10
+        LikePageTask(),                                                 # priority  10
+        ProfileEvalTask(),                                              # priority   5
+        SwipeTask(),                                                    # priority   5
+        RecoveryTask(),                                                 # priority   1
     ]
 
     return Orchestrator(ctx, tasks)

@@ -61,7 +61,10 @@ class Orchestrator:
 
                 for task in self._tasks:
                     if task.is_eligible(state):
-                        task.run(self._ctx, state)
+                        if task.needs_navigation(state):
+                            task.navigate_to(self._ctx)
+                        else:
+                            task.run(self._ctx, state)
                         break
 
                 time.sleep(loop_interval)
