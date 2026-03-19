@@ -22,8 +22,9 @@ def _prioritize(candidates: list[ChatCandidate]) -> list[ChatCandidate]:
 class ChatQueueTask(Task):
     """Works through a prioritized queue of chat candidates on the Chat List page.
 
-    Owns all three periodic timers (chat_queue, matches, likes). Replaces the
-    former ChatListTask which was a thin wrapper around the same timer logic.
+    Owns two periodic timers: chat_queue (general inbox check) and likes
+    (incoming likes page). Matched friends are discovered as part of the normal
+    chat_queue pass — no separate matches timer is needed.
 
     Triggers navigation when any timer fires and we are not on the chat list.
     Once on the chat list:
@@ -42,13 +43,11 @@ class ChatQueueTask(Task):
     def __init__(
         self,
         scheduler: PeriodicScheduler,
-        matches_interval: float,
         likes_interval: float,
         chat_interval: float,
         max_session_seconds: float = 600,
     ) -> None:
         self._scheduler = scheduler
-        self._matches_interval = matches_interval
         self._likes_interval = likes_interval
         self._chat_interval = chat_interval
         self._max_session = max_session_seconds
@@ -110,14 +109,12 @@ class ChatQueueTask(Task):
     def _any_timer_due(self) -> bool:
         return (
             self._scheduler.is_due("chat_queue", self._chat_interval)
-            or self._scheduler.is_due("matches", self._matches_interval)
             or self._scheduler.is_due("likes", self._likes_interval)
         )
 
     def _reset_due_timers(self) -> None:
         for key, interval in (
             ("chat_queue", self._chat_interval),
-            ("matches", self._matches_interval),
             ("likes", self._likes_interval),
         ):
             if self._scheduler.is_due(key, interval):

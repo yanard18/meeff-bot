@@ -57,20 +57,17 @@ def build_bot():
 
     # Scheduler + status bar (must exist before BotContext)
     scheduler = PeriodicScheduler()
-    likes_interval   = config.get("likes_check_interval_minutes", 10) * 60
-    matched_interval = config.get("matched_check_interval_minutes", 5) * 60
-    chat_interval    = config.get("chat_queue_interval_minutes", 5) * 60
+    likes_interval = config.get("likes_check_interval_minutes", 10) * 60
+    chat_interval  = config.get("chat_queue_interval_minutes", 5) * 60
 
-    # Prime both timers so the first check fires after the configured interval,
+    # Prime timers so the first check fires after the configured interval,
     # not immediately on startup (scheduler._last defaults to epoch 0).
     scheduler.reset("likes")
-    scheduler.reset("matches")
     scheduler.reset("chat_queue")
 
     status = StatusBar(scheduler)
-    status.register_timer("Likes check",   "likes",      likes_interval)
-    status.register_timer("Matched check", "matches",    matched_interval)
-    status.register_timer("Chat queue",    "chat_queue", chat_interval)
+    status.register_timer("Likes check", "likes",      likes_interval)
+    status.register_timer("Chat queue",  "chat_queue", chat_interval)
 
     ctx = BotContext(
         adb=adb,
@@ -93,7 +90,7 @@ def build_bot():
         DialogTask(),                                                                                   # priority 100
         MatchedProfileTask(),                                                                           # priority  60
         ChatTask(),                                                                                     # priority  50
-        ChatQueueTask(scheduler, matched_interval, likes_interval, chat_interval, chat_session_max),    # priority  15
+        ChatQueueTask(scheduler, likes_interval, chat_interval, chat_session_max),    # priority  15
         LikePageTask(),                                                                  # priority  10
         ProfileEvalTask(),                                                               # priority   5
         SwipeTask(),                                                                     # priority   5
