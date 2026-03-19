@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from ..ai_service import AIService
     from clip_critic import ClipCritic
     from .platform import Platform
+    from .status_bar import StatusBar
 
 
 @dataclass
@@ -24,3 +25,4 @@ class BotContext:
     config: dict
     platform: "Platform"
     scoring_enabled: bool
+    status: "StatusBar | None" = field(default=None)

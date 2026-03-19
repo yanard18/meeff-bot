@@ -12,6 +12,13 @@ Established conventions:
 - `_DIALOG_STATES` set in dialog_task.py is the canonical pattern for state membership checks.
 - ChatTask extension hooks (`# Extension hooks` banner) are intentionally preserved — they signal a subclassing contract for Phase 1+ AI chat.
 
+Key refactoring decisions made (2026-03-19, status_line / scheduler / orchestrator review):
+- `status_line.py`: removed unused `import time` (module never calls time directly — all timing delegated to PeriodicScheduler).
+- `status_line.py`: added explicit `key=lambda e: e[0]` to `sorted()` in `_render` to make sort criterion (remaining time) unambiguous rather than relying on tuple-comparison position.
+- `status_line.py`: removed E221 alignment padding on module-level constants (`_RED`, `_YELLOW`, `_RESET`, `_URGENT_SECS`, `_WARNING_SECS`) per established project convention.
+- `status_line.py` stat locals (`p`, `lk`, `n`): REJECTED — inlining three `.get()` calls into the f-string would hurt readability more than the locals hurt clarity.
+- `orchestrator.py` `sys.exit()` in `verify_system`: REJECTED — class is the top-level CLI driver; raising instead adds ceremony with no practical gain.
+
 Key refactoring decisions made (2026-03-19):
 - `get_matched_friends` / `get_liked_profiles` in MeeffPlatform: removed redundant count-check-before-bounds-query. The bounds call already returns None when nothing is present; the count call was a wasteful second XML parse.
 - RecoveryTask.is_eligible: removed two inline comments that duplicated the class docstring. `return True` is self-evident in this context.

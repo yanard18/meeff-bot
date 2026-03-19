@@ -63,6 +63,7 @@ def build_bot():
     from src.core.context import BotContext
     from src.core.scheduler import PeriodicScheduler
     from src.core.orchestrator import Orchestrator
+    from src.core.status_bar import StatusBar
 
     from src.platforms.meeff import MeeffPlatform
 
@@ -90,7 +91,14 @@ def build_bot():
     # Platform adapter
     platform = MeeffPlatform(adb, vision)
 
-    # Shared context
+    # Scheduler + status line (must exist before BotContext)
+    scheduler = PeriodicScheduler()
+    likes_interval = config.get("likes_check_interval_minutes", 10) * 60
+    matched_interval = config.get("matched_check_interval_minutes", 5) * 60
+    status = StatusBar(scheduler)
+    status.register_timer("Likes check", "likes", likes_interval)
+    status.register_timer("Matched check", "matches", matched_interval)
+
     ctx = BotContext(
         adb=adb,
         vision=vision,
@@ -99,10 +107,8 @@ def build_bot():
         config=config,
         platform=platform,
         scoring_enabled=scoring_enabled,
+        status=status,
     )
-
-    # Scheduler for periodic timers (shared across tasks that need it)
-    scheduler = PeriodicScheduler()
 
     # Task registry — Orchestrator sorts by priority automatically
     tasks = [

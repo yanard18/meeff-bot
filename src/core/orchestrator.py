@@ -10,9 +10,10 @@ class Orchestrator:
 
     Each tick:
       1. Ask the platform for the current UI state string.
-      2. Walk tasks in descending priority order.
-      3. Call run() on the first eligible task.
-      4. Sleep for loop_interval seconds.
+      2. Update the status bar mode (renders independently in its own thread).
+      3. Walk tasks in descending priority order.
+      4. Call run() on the first eligible task.
+      5. Sleep for loop_interval seconds.
 
     Nothing here knows about Meeff, Instagram, or any specific task —
     all that knowledge lives in Platform and Task subclasses.
@@ -20,7 +21,6 @@ class Orchestrator:
 
     def __init__(self, ctx: BotContext, tasks: list[Task]) -> None:
         self._ctx = ctx
-        # Sort once at startup; priority never changes at runtime.
         self._tasks = sorted(tasks, key=lambda t: t.priority, reverse=True)
 
     def verify_system(self) -> None:
@@ -45,17 +45,19 @@ class Orchestrator:
     def run(self) -> None:
         self.verify_system()
 
-        loop_interval = self._ctx.config.get("loop_interval", 1.0)
+        status = self._ctx.status
+        if status:
+            status.start()
 
-        print("\n" + "=" * 40)
-        print("    Bot Started")
-        print("    Press Ctrl+C to stop")
-        print("=" * 40 + "\n")
+        loop_interval = self._ctx.config.get("loop_interval", 1.0)
 
         try:
             while True:
                 state = self._ctx.platform.detect_state()
                 print(f"[State] {state}")
+
+                if status:
+                    status.update_mode(state.removeprefix("ACTIVE (").removesuffix(")"))
 
                 for task in self._tasks:
                     if task.is_eligible(state):
@@ -66,3 +68,6 @@ class Orchestrator:
 
         except KeyboardInterrupt:
             print("\n[*] Stopping Bot...")
+        finally:
+            if status:
+                status.stop()

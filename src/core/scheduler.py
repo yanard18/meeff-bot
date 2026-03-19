@@ -22,3 +22,8 @@ class PeriodicScheduler:
     def reset(self, name: str) -> None:
         """Mark `name` as just-executed (restarts its interval)."""
         self._last[name] = time.time()
+
+    def time_remaining(self, name: str, interval_secs: float) -> float:
+        """Seconds until `name` is next due. Returns 0.0 if already overdue."""
+        elapsed = time.time() - self._last.get(name, 0.0)
+        return max(0.0, interval_secs - elapsed)

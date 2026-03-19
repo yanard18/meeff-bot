@@ -32,8 +32,13 @@ class ProfileEvalTask(Task):
         should_like = self._evaluate(ctx, screenshot_path)
         self._save_sample(screenshot_path, should_like)
 
+        if ctx.status:
+            ctx.status.increment("profiles")
+
         if not should_like:
             print("[Profile] Below threshold — tapping Nope...")
+            if ctx.status:
+                ctx.status.increment("nopes")
             nope = ctx.vision.get_node_bounds("nope_imageview")
             if nope:
                 ctx.adb.human_tap(nope, name="Nope")
@@ -52,6 +57,8 @@ class ProfileEvalTask(Task):
         like = ctx.vision.get_node_bounds("like_imageview")
         ok = ctx.adb.human_tap(like, name="Like") if like else False
         print("[Profile] Liked." if ok else "[Profile] Failed to tap Like.")
+        if ok and ctx.status:
+            ctx.status.increment("likes")
 
         delay = random.uniform(t_conf["delay_after_like_min"], t_conf["delay_after_like_max"])
         print(f"[Profile] Waiting {delay:.2f}s...\n")
