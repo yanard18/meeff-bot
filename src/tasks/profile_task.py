@@ -35,7 +35,7 @@ class ProfileEvalTask(Task):
             profile_id = ctx.harvest.harvest_profile(screenshot_path=screenshot_path)
 
         should_like = self._evaluate(ctx, screenshot_path)
-        self._save_sample(screenshot_path, should_like)
+        self._save_sample(ctx, screenshot_path, should_like)
 
         if ctx.harvest and profile_id:
             ctx.harvest.record_decision(profile_id, should_like)
@@ -78,7 +78,9 @@ class ProfileEvalTask(Task):
             return True
         return ctx.critic.evaluate(screenshot_path).liked
 
-    def _save_sample(self, screenshot_path: str, liked: bool) -> None:
+    def _save_sample(self, ctx: BotContext, screenshot_path: str, liked: bool) -> None:
+        if not ctx.config.get("ai", {}).get("collect_training_data", True):
+            return
         if not screenshot_path or not os.path.exists(screenshot_path):
             return
         label = "liked" if liked else "disliked"

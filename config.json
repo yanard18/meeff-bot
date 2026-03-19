@@ -19,6 +19,7 @@
     "ai": {
         "clip_enabled": true,
         "chat_enabled": true,
+        "collect_training_data": true,
         "model": "claude-haiku-4-5-20251001",
         "clip_threshold": 0.6
     },
