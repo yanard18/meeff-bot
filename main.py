@@ -69,8 +69,12 @@ def build_bot():
 
     from profile_db import ProfileStore, HarvestService
 
+    from src.core.message_generator import TemplateGenerator
+
     from src.tasks.dialog_task import DialogTask
+    from src.tasks.matched_profile_task import MatchedProfileTask
     from src.tasks.chat_task import ChatTask
+    from src.tasks.chat_queue_task import ChatQueueTask
     from src.tasks.chat_list_task import ChatListTask
     from src.tasks.like_page_task import LikePageTask
     from src.tasks.profile_task import ProfileEvalTask
@@ -85,6 +89,9 @@ def build_bot():
     store = ProfileStore("data/profiles.db")
     harvest = HarvestService(store=store, vision=vision, adb=adb, platform="meeff")
 
+    chat_openers = config.get("chat_openers", [])
+    message_generator = TemplateGenerator(openers=chat_openers) if chat_openers else None
+
     ai_conf = config.get("ai", {})
     ai = AIService(ai_conf)
     scoring_enabled = ai_conf.get("enabled", False)
@@ -98,17 +105,20 @@ def build_bot():
 
     # Scheduler + status bar (must exist before BotContext)
     scheduler = PeriodicScheduler()
-    likes_interval = config.get("likes_check_interval_minutes", 10) * 60
+    likes_interval   = config.get("likes_check_interval_minutes", 10) * 60
     matched_interval = config.get("matched_check_interval_minutes", 5) * 60
+    chat_interval    = config.get("chat_queue_interval_minutes", 5) * 60
 
     # Prime both timers so the first check fires after the configured interval,
     # not immediately on startup (scheduler._last defaults to epoch 0).
     scheduler.reset("likes")
     scheduler.reset("matches")
+    scheduler.reset("chat_queue")
 
     status = StatusBar(scheduler)
-    status.register_timer("Likes check", "likes", likes_interval)
-    status.register_timer("Matched check", "matches", matched_interval)
+    status.register_timer("Likes check",   "likes",      likes_interval)
+    status.register_timer("Matched check", "matches",    matched_interval)
+    status.register_timer("Chat queue",    "chat_queue", chat_interval)
 
     ctx = BotContext(
         adb=adb,
@@ -120,17 +130,22 @@ def build_bot():
         scoring_enabled=scoring_enabled,
         status=status,
         harvest=harvest,
+        message_generator=message_generator,
     )
 
     # Task registry — Orchestrator sorts by priority automatically
+    chat_session_max = config.get("chat_session_max_seconds", 600)
+
     tasks = [
-        DialogTask(),                                                   # priority 100
-        ChatTask(),                                                     # priority  50
-        ChatListTask(scheduler, matched_interval, likes_interval),      # priority  10
-        LikePageTask(),                                                 # priority  10
-        ProfileEvalTask(),                                              # priority   5
-        SwipeTask(),                                                    # priority   5
-        RecoveryTask(),                                                 # priority   1
+        DialogTask(),                                                                                   # priority 100
+        MatchedProfileTask(),                                                                           # priority  60
+        ChatTask(),                                                                                     # priority  50
+        ChatQueueTask(scheduler, matched_interval, likes_interval, chat_interval, chat_session_max),    # priority  15
+        ChatListTask(scheduler, matched_interval, likes_interval),                                      # priority  10
+        LikePageTask(),                                                                  # priority  10
+        ProfileEvalTask(),                                                               # priority   5
+        SwipeTask(),                                                                     # priority   5
+        RecoveryTask(),                                                                  # priority   1
     ]
 
     return Orchestrator(ctx, tasks), store

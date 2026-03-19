@@ -207,6 +207,20 @@ class AdbService:
                 os.remove(raw_path)
             return None
 
+    def type_text(self, text: str) -> None:
+        """Types text into the currently focused input field via ADB.
+
+        Uses 'input text' which works reliably for ASCII. For Korean or other
+        Unicode input, the device needs ADBKeyboard (or similar IME) installed
+        and set as the active keyboard. Without it, non-ASCII characters will
+        be dropped silently.
+
+        Spaces are encoded as %s per the ADB input text protocol.
+        """
+        encoded = text.replace('%', '%25').replace(' ', '%s')
+        self.run_command(f'shell input text "{encoded}"', check=False)
+        time.sleep(0.5)
+
     def human_scroll_down(self):
         """Simulates a natural human scroll down the page."""
         # Screen resolution is ~1080x2400.

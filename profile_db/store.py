@@ -17,7 +17,7 @@ import sqlite3
 import time
 
 # Only these columns may be set via upsert() — prevents accidental schema bypass.
-_UPDATABLE_FIELDS = frozenset({"name", "age", "bio", "liked"})
+_UPDATABLE_FIELDS = frozenset({"name", "age", "bio", "answers", "liked"})
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS profiles (
@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     name        TEXT,
     age         INTEGER,
     bio         TEXT,
+    answers     TEXT,               -- JSON list of Q&A answer strings
     liked       INTEGER,            -- 1=liked, 0=noped, NULL=unknown
     first_seen  REAL    NOT NULL,
     last_seen   REAL    NOT NULL
@@ -63,7 +64,21 @@ class ProfileStore:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
+        self._migrate()
         self._conn.commit()
+
+    # ------------------------------------------------------------------
+    # Migration
+    # ------------------------------------------------------------------
+
+    def _migrate(self) -> None:
+        """Apply incremental schema changes to existing databases."""
+        existing = {
+            row[1]
+            for row in self._conn.execute("PRAGMA table_info(profiles)").fetchall()
+        }
+        if "answers" not in existing:
+            self._conn.execute("ALTER TABLE profiles ADD COLUMN answers TEXT")
 
     # ------------------------------------------------------------------
     # Profile ID generation

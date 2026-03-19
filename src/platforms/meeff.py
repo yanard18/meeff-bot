@@ -1,6 +1,6 @@
 import time
 
-from ..core.platform import Platform, MatchedFriend, LikedProfile
+from ..core.platform import Platform, MatchedFriend, LikedProfile, ChatCandidate
 from ..adb_service import AdbService
 from ..vision_service import VisionService
 
@@ -51,3 +51,33 @@ class MeeffPlatform(Platform):
     def get_liked_profiles(self) -> list[LikedProfile]:
         bounds = self._vision.get_first_liked_profile_bounds()
         return [LikedProfile(bounds=bounds)] if bounds else []
+
+    def get_chat_candidates(self) -> list[ChatCandidate]:
+        candidates: dict[str, ChatCandidate] = {}
+
+        # Matched friends (time-limited — highest priority)
+        if self._vision.get_first_matched_friend_bounds():
+            bounds = self._vision.get_first_matched_friend_bounds()
+            # Name not easily extractable from matched card; use placeholder
+            candidates["__matched__"] = ChatCandidate(
+                name="Matched Friend",
+                bounds=bounds,
+                has_unread=False,
+                is_matched=True,
+            )
+
+        _OPENED_CHAT = "has opened the chat room"
+
+        # Chat rows with unread messages or "opened chat room" system messages
+        for row in self._vision.get_chat_list_rows():
+            name = row["name"]
+            has_action = row["has_unread"] or _OPENED_CHAT in row.get("last_msg", "")
+            if name not in candidates and has_action:
+                candidates[name] = ChatCandidate(
+                    name=name,
+                    bounds=row["bounds"],
+                    has_unread=has_action,
+                    is_matched=False,
+                )
+
+        return list(candidates.values())

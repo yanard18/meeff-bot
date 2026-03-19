@@ -51,6 +51,14 @@ class Task(ABC):
         Default: no-op.
         """
 
+    def cancel_navigation(self, ctx: BotContext) -> None:
+        """Called by the Orchestrator when repeated navigation attempts have
+        all failed (state did not change after nav_failure_threshold ticks).
+
+        Override to reset timers, press back, or take any corrective action.
+        Default: no-op.
+        """
+
     @abstractmethod
     def run(self, ctx: BotContext, state: str) -> None:
         """Execute one unit of work for the current state.

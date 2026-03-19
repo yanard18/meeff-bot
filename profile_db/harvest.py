@@ -7,11 +7,13 @@ vision/adb objects.
 
 Expected interface on `vision`:
     get_node_text(resource_id_suffix: str) -> str | None
+    get_all_node_texts(resource_id_suffix: str) -> list[str]
 
 Expected interface on `adb`:
     take_screenshot(crop_bounds=None) -> str | None   (returns local file path)
 """
 
+import json
 import os
 import shutil
 import time
@@ -36,9 +38,10 @@ class HarvestService:
 
     # Resource-id suffixes used to read profile fields.
     # Override by subclassing if a platform uses different IDs.
-    NAME_IDS = ("nickname_textview", "name_textview")
-    AGE_IDS  = ("age_textview",)
-    BIO_IDS  = ("introduce_textview", "bio_textview", "description_textview")
+    NAME_IDS    = ("nickname_textview", "name_textview")
+    AGE_IDS     = ("age_textview",)
+    BIO_IDS     = ("introduce_textview", "bio_textview", "description_textview", "purpose_textview")
+    ANSWER_IDS  = ("answer_textview", "answer_content_textview")  # repeated Q&A nodes
 
     def __init__(
         self,
@@ -72,9 +75,14 @@ class HarvestService:
         age_text = self._first_text(self.AGE_IDS)
         age = int(age_text) if age_text and age_text.isdigit() else None
         bio = self._first_text(self.BIO_IDS)
+        answers = self._all_texts(self.ANSWER_IDS)
 
         profile_id = self._store.make_profile_id(name, age, self._platform)
-        self._store.upsert(profile_id, self._platform, name=name, age=age, bio=bio)
+        self._store.upsert(
+            profile_id, self._platform,
+            name=name, age=age, bio=bio,
+            answers=json.dumps(answers, ensure_ascii=False) if answers else None,
+        )
 
         if screenshot_path and os.path.exists(screenshot_path):
             dest = self._save_photo(profile_id, screenshot_path)
@@ -91,6 +99,28 @@ class HarvestService:
         """Append a chat message ('sent' or 'received') to the profile's history."""
         self._store.add_message(profile_id, direction, text)
 
+    def harvest_chat_contact(self) -> str | None:
+        """Look up or create a profile entry from the chat toolbar name.
+
+        Called when ChatTask enters a conversation and needs a profile_id to
+        link messages to. Only saves name — no photo or bio available here.
+        Returns profile_id or None if the name cannot be read from the screen.
+        """
+        name = (
+            self._vision.get_node_text("toolbar_title")
+            or self._vision.get_node_text("title_textview")
+            or self._vision.get_node_text("nickname_textview")
+        )
+        if not name:
+            return None
+        profile_id = self._store.make_profile_id(name, None, self._platform)
+        self._store.upsert(profile_id, self._platform, name=name)
+        return profile_id
+
+    def get_profile(self, profile_id: str) -> dict | None:
+        """Return the full profile dict for a given id, or None."""
+        return self._store.get(profile_id)
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -102,6 +132,16 @@ class HarvestService:
             if text:
                 return text
         return None
+
+    def _all_texts(self, resource_id_suffixes: tuple[str, ...]) -> list[str]:
+        """Collect all text values across all nodes matching any of the given suffixes."""
+        seen, results = set(), []
+        for suffix in resource_id_suffixes:
+            for text in self._vision.get_all_node_texts(suffix):
+                if text not in seen:
+                    seen.add(text)
+                    results.append(text)
+        return results
 
     def _save_photo(self, profile_id: str, src_path: str) -> str:
         """Copy a photo into data/photos/{profile_id}/ and return the dest path."""

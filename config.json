@@ -21,6 +21,11 @@
         "clip_threshold": 0.6
     },
     "likes_check_interval_minutes": 10,
-    "matched_check_interval_minutes": 3,
-    "device_serial": "emulator-5554"
+    "matched_check_interval_minutes": 5,
+    "device_serial": "emulator-5554",
+    "chat_max_turns": 3,
+    "chat_response_timeout": 30,
+    "chat_queue_interval_minutes": 0.5,
+    "chat_session_max_seconds": 600,
+    "chat_openers": ["ur smile cute"]
 }

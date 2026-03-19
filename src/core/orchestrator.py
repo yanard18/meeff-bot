@@ -22,6 +22,7 @@ class Orchestrator:
     def __init__(self, ctx: BotContext, tasks: list[Task]) -> None:
         self._ctx = ctx
         self._tasks = sorted(tasks, key=lambda t: t.priority, reverse=True)
+        self._nav_attempts: dict[int, int] = {}  # task id → consecutive nav failures
 
     def verify_system(self) -> None:
         """Abort early if the device is not ready."""
@@ -59,11 +60,22 @@ class Orchestrator:
                 if status:
                     status.update_mode(state.removeprefix("ACTIVE (").removesuffix(")"))
 
+                nav_threshold = self._ctx.config.get("nav_failure_threshold", 3)
+
                 for task in self._tasks:
                     if task.is_eligible(state):
                         if task.needs_navigation(state):
-                            task.navigate_to(self._ctx)
+                            key = id(task)
+                            self._nav_attempts[key] = self._nav_attempts.get(key, 0) + 1
+                            if self._nav_attempts[key] >= nav_threshold:
+                                print(f"[Orchestrator] {type(task).__name__} navigation"
+                                      f" failed {nav_threshold}x — cancelling.")
+                                task.cancel_navigation(self._ctx)
+                                self._nav_attempts[key] = 0
+                            else:
+                                task.navigate_to(self._ctx)
                         else:
+                            self._nav_attempts.pop(id(task), None)
                             task.run(self._ctx, state)
                         break
 

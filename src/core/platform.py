@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -10,6 +10,15 @@ class MatchedFriend:
 @dataclass
 class LikedProfile:
     bounds: dict
+
+
+@dataclass
+class ChatCandidate:
+    name: str
+    bounds: dict
+    has_unread: bool    # "N" / unread badge visible on chat row
+    is_matched: bool    # time-limited match card (expires — highest urgency)
+    score: float = field(default=0.0, compare=False)
 
 
 class Platform(ABC):
@@ -55,3 +64,11 @@ class Platform(ABC):
     @abstractmethod
     def get_liked_profiles(self) -> list[LikedProfile]:
         """Return all profiles that liked us, visible on the likes page."""
+
+    @abstractmethod
+    def get_chat_candidates(self) -> list[ChatCandidate]:
+        """Return all actionable chat candidates from the chat list.
+
+        Combines matched friends (time-limited, highest urgency) with chat rows
+        that have an unread badge. Deduplicates by name.
+        """

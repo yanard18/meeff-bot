@@ -5,34 +5,35 @@ from ..core.context import BotContext
 
 
 class ChatTask(Task):
-    """Manages an open individual chat conversation.
+    """Manages one open chat conversation.
 
     UI state: "ACTIVE (Chat With Person)"
-    Priority 50 — higher than swipe/likes so the bot stays in an active chat
-    until it decides to leave, rather than being interrupted by the outer loop.
+    Priority 50.
 
     Stay/leave is handled naturally by the tick system: as long as the chat UI
-    is on screen, this task wins every tick. To leave, run() calls press_back()
-    which changes the UI state and makes is_eligible() return False next tick.
+    is on screen this task wins every tick. Pressing back changes the UI state
+    so is_eligible() returns False, handing control back to ChatQueueTask.
 
-    Per-tick flow (AI enabled):
-      1. If waiting for a reply and timeout hasn't passed — do nothing this tick.
-      2. If _should_leave() — press back and reset state.
-      3. If a reply can be generated — send it and start waiting.
+    Per-tick flow:
+      1. Resolve profile_id from the chat toolbar (once per session).
+      2. If waiting for a reply and timeout has not passed — do nothing.
+      3. If max turns reached — leave.
+      4. Try to generate a reply via ctx.message_generator.
+         If a reply is produced — send it, start waiting.
+         If not — leave.
 
-    Extension hooks:
-      _get_messages()   — read messages from screen (Vision layer)
-      _should_leave()   — conversation exit logic (silence, LLM, max turns, etc.)
-      _generate_reply() — produce reply text via AI service
-      _send_message()   — type + tap send via ADB
+    Hot-chat detection: if new messages appear while we are waiting (the other
+    person replied), _waiting_since is cleared so we re-enter the send loop
+    instead of timing out.
     """
 
     priority = 50
 
-    _RESPONSE_TIMEOUT = 30  # seconds to wait for a reply before leaving
-
     def __init__(self) -> None:
         self._waiting_since: float | None = None
+        self._profile_id: str | None = None
+        self._turns_sent: int = 0
+        self._msg_count_at_send: int = 0
 
     def is_eligible(self, state: str) -> bool:
         return "Chat With Person" in state
@@ -43,28 +44,42 @@ class ChatTask(Task):
             self._leave(ctx)
             return
 
-        # If we sent a message last tick, check whether we're still waiting.
+        # Resolve profile once per chat session
+        if self._profile_id is None and ctx.harvest:
+            self._profile_id = ctx.harvest.harvest_chat_contact()
+
+        messages = self._get_messages(ctx)
+        max_turns = ctx.config.get("chat_max_turns", 3)
+
+        # Hot-chat detection: they replied while we were waiting
+        if self._waiting_since is not None and len(messages) > self._msg_count_at_send:
+            print("[Chat] They replied — resuming conversation.")
+            self._waiting_since = None
+
         if self._waiting_since is not None:
             elapsed = time.time() - self._waiting_since
-            if elapsed < self._RESPONSE_TIMEOUT:
-                print(f"[Chat] Waiting for reply ({elapsed:.0f}s / {self._RESPONSE_TIMEOUT}s)...")
-                return  # do nothing — Orchestrator will tick us again
+            timeout = ctx.config.get("chat_response_timeout", 30)
+            if elapsed < timeout:
+                print(f"[Chat] Waiting for reply ({elapsed:.0f}s / {timeout}s)...")
+                return
             print("[Chat] Response timeout — leaving chat.")
             self._leave(ctx)
             return
 
-        messages = self._get_messages(ctx)
-
-        if self._should_leave(ctx, messages):
-            print("[Chat] Decided to leave chat.")
+        if self._turns_sent >= max_turns:
+            print(f"[Chat] Reached {max_turns} turns — leaving chat.")
             self._leave(ctx)
             return
 
-        reply = self._generate_reply(ctx, messages)
+        profile = ctx.harvest.get_profile(self._profile_id) if (ctx.harvest and self._profile_id) else None
+        reply = self._generate_reply(ctx, messages, profile)
+
         if reply:
+            self._msg_count_at_send = len(messages)
             self._send_message(ctx, reply)
+            self._turns_sent += 1
             self._waiting_since = time.time()
-            print("[Chat] Reply sent — waiting for response.")
+            print(f"[Chat] Message sent (turn {self._turns_sent}/{max_turns}) — waiting for reply.")
         else:
             print("[Chat] No reply generated — leaving chat.")
             self._leave(ctx)
@@ -76,34 +91,32 @@ class ChatTask(Task):
     def _leave(self, ctx: BotContext) -> None:
         ctx.adb.press_back()
         self._waiting_since = None
+        self._profile_id = None
+        self._turns_sent = 0
+        self._msg_count_at_send = 0
         time.sleep(2)
 
-    # ------------------------------------------------------------------
-    # Extension hooks — implement these for full AI chat
-    # ------------------------------------------------------------------
+    def _get_messages(self, ctx: BotContext) -> list[dict]:
+        """Read visible messages from the current chat screen."""
+        return ctx.vision.get_chat_messages()
 
-    def _get_messages(self, ctx: BotContext) -> list[str]:
-        """Return chat message history from the current screen."""
-        return []
-
-    def _should_leave(self, ctx: BotContext, messages: list[str]) -> bool:
-        """Return True to exit the chat this tick.
-
-        Hook: implement exit logic — silence timeout, LLM judgement,
-        maximum message count, etc.
-        """
-        return True  # Phase 0: always leave immediately
-
-    def _generate_reply(self, ctx: BotContext, messages: list[str]) -> str | None:
-        """Generate a reply using the AI service.
-
-        Hook: call ctx.ai.generate_chat_reply(messages) when implemented.
-        """
+    def _generate_reply(
+        self,
+        ctx: BotContext,
+        messages: list[dict],
+        profile: dict | None,
+    ) -> str | None:
+        """Delegate to the injected MessageGenerator."""
+        if ctx.message_generator:
+            return ctx.message_generator.generate(messages, profile)
         return None
 
     def _send_message(self, ctx: BotContext, text: str) -> None:
-        """Type and send a message via ADB.
-
-        Hook: call ctx.adb.type_text(text) + tap send when implemented.
-        After sending, record via: ctx.harvest.record_message(profile_id, "sent", text)
-        """
+        """Type text into the input field and tap the send button."""
+        ctx.adb.type_text(text)
+        time.sleep(0.3)
+        send = ctx.vision.get_node_bounds("send_imageview")
+        if send:
+            ctx.adb.human_tap(send, name="Send")
+        if ctx.harvest and self._profile_id:
+            ctx.harvest.record_message(self._profile_id, "sent", text)

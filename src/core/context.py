@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from .platform import Platform
     from .status_bar import StatusBar
     from profile_db import HarvestService
+    from .message_generator import MessageGenerator
 
 
 @dataclass
@@ -28,3 +29,4 @@ class BotContext:
     scoring_enabled: bool
     status: "StatusBar | None" = field(default=None)
     harvest: "HarvestService | None" = field(default=None)
+    message_generator: "MessageGenerator | None" = field(default=None)
