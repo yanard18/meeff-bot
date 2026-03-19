@@ -30,7 +30,16 @@
     "chat_session_max_seconds": 600,
     "sleep_interval_minutes": 30,
     "sleep_duration_minutes": 20,
-    "active_tasks": ["swipe", "profile_eval", "sleep"],
+    "tasks": {
+        "swipe":           true,
+        "profile_eval":    true,
+        "sleep":           true,
+        "matched_profile": false,
+        "chat":            false,
+        "chat_queue":      false,
+        "like_page":       false,
+        "switch_region":   false
+    },
     "region_rotation": {
         "interval_minutes": 8,
         "nationalities": ["Russia", "Ukraine"]

@@ -97,12 +97,11 @@ def build_bot():
     # Task registry — Orchestrator sorts by priority automatically
     chat_session_max = config.get("chat_session_max_seconds", 600)
 
-    # Optional tasks — keyed by the name used in config["active_tasks"].
+    # Optional tasks — each can be toggled in config["tasks"][name].
     # DialogTask and RecoveryTask are always active (bot infrastructure).
-    active = set(config.get("active_tasks", [
-        "matched_profile", "chat", "chat_queue", "like_page",
-        "profile_eval", "swipe", "sleep", "switch_region",
-    ]))
+    task_conf = config.get("tasks", {})
+    def _on(name: str) -> bool:
+        return task_conf.get(name, True)
 
     optional = {
         "matched_profile": MatchedProfileTask(),                                         # priority  60
@@ -117,10 +116,11 @@ def build_bot():
 
     tasks = [
         DialogTask(),                                                                    # priority 100 (always)
-        *[t for name, t in optional.items() if name in active],
+        *[t for name, t in optional.items() if _on(name)],
         RecoveryTask(),                                                                  # priority   1 (always)
     ]
-    print(f"[Bot] Active tasks: {sorted(active)}")
+    enabled = [name for name in optional if _on(name)]
+    print(f"[Bot] Active tasks: {enabled}")
 
     return Orchestrator(ctx, tasks), store
 
