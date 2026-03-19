@@ -21,6 +21,6 @@
         "clip_threshold": 0.6
     },
     "likes_check_interval_minutes": 10,
-    "matched_check_interval_minutes": 0.5,
+    "matched_check_interval_minutes": 3,
     "device_serial": "emulator-5554"
 }

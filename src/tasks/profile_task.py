@@ -29,8 +29,15 @@ class ProfileEvalTask(Task):
         screenshot_path = ctx.adb.take_screenshot(crop_bounds=photo_bounds)
         time.sleep(1)
 
+        profile_id = None
+        if ctx.harvest:
+            profile_id = ctx.harvest.harvest_profile(screenshot_path=screenshot_path)
+
         should_like = self._evaluate(ctx, screenshot_path)
         self._save_sample(screenshot_path, should_like)
+
+        if ctx.harvest and profile_id:
+            ctx.harvest.record_decision(profile_id, should_like)
 
         if ctx.status:
             ctx.status.increment("profiles")

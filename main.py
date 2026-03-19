@@ -67,6 +67,8 @@ def build_bot():
 
     from src.platforms.meeff import MeeffPlatform
 
+    from profile_db import ProfileStore, HarvestService
+
     from src.tasks.dialog_task import DialogTask
     from src.tasks.chat_task import ChatTask
     from src.tasks.chat_list_task import ChatListTask
@@ -79,6 +81,9 @@ def build_bot():
     adb = AdbService()
     vision = VisionService(adb)
     config = adb.config
+
+    store = ProfileStore("data/profiles.db")
+    harvest = HarvestService(store=store, vision=vision, adb=adb, platform="meeff")
 
     ai_conf = config.get("ai", {})
     ai = AIService(ai_conf)
@@ -114,6 +119,7 @@ def build_bot():
         platform=platform,
         scoring_enabled=scoring_enabled,
         status=status,
+        harvest=harvest,
     )
 
     # Task registry — Orchestrator sorts by priority automatically
@@ -127,7 +133,7 @@ def build_bot():
         RecoveryTask(),                                                 # priority   1
     ]
 
-    return Orchestrator(ctx, tasks)
+    return Orchestrator(ctx, tasks), store
 
 
 if __name__ == '__main__':
@@ -136,5 +142,8 @@ if __name__ == '__main__':
     else:
         print("[Emulator] Already running.")
 
-    bot = build_bot()
-    bot.run()
+    bot, store = build_bot()
+    try:
+        bot.run()
+    finally:
+        store.close()

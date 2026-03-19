@@ -54,6 +54,16 @@ class VisionService:
                     return bounds
         return None
 
+    def get_node_text(self, resource_id_suffix: str) -> str | None:
+        """Returns the text attribute of the first node whose resource-id ends with the given suffix."""
+        if self.cached_tree is None:
+            return None
+        for node in self.cached_tree.iter('node'):
+            if node.attrib.get('resource-id', '').split('/')[-1] == resource_id_suffix:
+                text = node.attrib.get('text', '').strip()
+                return text if text else None
+        return None
+
     def get_node_bounds_by_desc(self, content_desc: str) -> dict | None:
         """Returns the bounds dict of the first node matching the given content-desc."""
         if self.cached_tree is None:

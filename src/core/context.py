@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from clip_critic import ClipCritic
     from .platform import Platform
     from .status_bar import StatusBar
+    from profile_db import HarvestService
 
 
 @dataclass
@@ -26,3 +27,4 @@ class BotContext:
     platform: "Platform"
     scoring_enabled: bool
     status: "StatusBar | None" = field(default=None)
+    harvest: "HarvestService | None" = field(default=None)
