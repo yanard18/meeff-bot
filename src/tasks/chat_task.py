@@ -113,18 +113,19 @@ class ChatTask(Task):
             return ctx.message_generator.generate(messages, profile)
         return None
 
+    def _persist_message(self, ctx: BotContext, direction: str, text: str) -> None:
+        if ctx.harvest and self._profile_id:
+            ctx.harvest.record_message(self._profile_id, direction, text)
+            self._recorded_msg_count += 1
+
     def _record_new_messages(self, ctx: BotContext, messages: list[dict]) -> None:
         """Persist any messages not yet saved to the profile DB."""
         if not ctx.harvest or not self._profile_id:
             return
-        new = messages[self._recorded_msg_count:]
-        for msg in new:
-            ctx.harvest.record_message(self._profile_id, msg["direction"], msg["text"])
-        self._recorded_msg_count += len(new)
+        for msg in messages[self._recorded_msg_count:]:
+            self._persist_message(ctx, msg["direction"], msg["text"])
 
     def _send_message(self, ctx: BotContext, text: str) -> None:
         """Log the generated reply (dry-run mode — not sent to device)."""
         print(f"[Chat] [DRY RUN] Would send: {text}")
-        if ctx.harvest and self._profile_id:
-            ctx.harvest.record_message(self._profile_id, "sent", text)
-            self._recorded_msg_count += 1
+        self._persist_message(ctx, "sent", text)
