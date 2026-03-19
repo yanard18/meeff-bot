@@ -7,5 +7,5 @@ screenshots/
 .env
 classifier.pkl
 labeled_data/
-data/photos/
-data/profiles.db
+data/
+.claude/
