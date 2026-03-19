@@ -139,6 +139,18 @@ class MeeffPlatform(Platform):
     # Meeff-specific UI queries (private — tasks never call these)
     # ------------------------------------------------------------------
 
+    def _find_clickable_ancestor(self, node, parent_map: dict, max_depth: int = 6):
+        """Walk up parent_map until a clickable ancestor is found or depth is exhausted."""
+        container = node
+        for _ in range(max_depth):
+            p = parent_map.get(container)
+            if p is None:
+                break
+            container = p
+            if container.attrib.get('clickable') == 'true':
+                break
+        return container
+
     def _is_app_open(self) -> bool:
         """True if any node in the current tree belongs to the Meeff package."""
         if self._vision.cached_tree is None:
@@ -181,14 +193,7 @@ class MeeffPlatform(Platform):
             if node.attrib.get('resource-id', '').split('/')[-1] != 'expire_progressbar':
                 continue
 
-            container = node
-            for _ in range(6):
-                p = parent_map.get(container)
-                if p is None:
-                    break
-                container = p
-                if container.attrib.get('clickable') == 'true':
-                    break
+            container = self._find_clickable_ancestor(node, parent_map)
 
             bounds = self._vision._parse_bounds(container) or self._vision._parse_bounds(node)
             if not bounds:
@@ -227,14 +232,7 @@ class MeeffPlatform(Platform):
             if node.attrib.get('resource-id', '').split('/')[-1] != 'last_msg_textview':
                 continue
 
-            container = node
-            for _ in range(6):
-                p = parent_map.get(container)
-                if p is None:
-                    break
-                container = p
-                if container.attrib.get('clickable') == 'true':
-                    break
+            container = self._find_clickable_ancestor(node, parent_map)
 
             if container.attrib.get('clickable') != 'true':
                 continue

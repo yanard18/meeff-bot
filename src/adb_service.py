@@ -22,19 +22,25 @@ class AdbService:
             print(f"[!] Error loading config.json: {e}. Using defaults.")
             return {"timing": {"human_tap_hesitation_min": 0.5, "human_tap_hesitation_max": 1.5, "scroll_duration_min_ms": 300, "scroll_duration_max_ms": 800, "read_delay_after_scroll_min": 1.0, "read_delay_after_scroll_max": 2.5}}
 
-    def run_command(self, command, check=True):
-        """Runs a generic ADB command."""
+    def _invoke_adb(self, args: list[str], check: bool = False) -> str | None:
+        """Core ADB invocation. All public command methods delegate here."""
         try:
             adb_path = os.environ.get("ADB_PATH", "adb")
             prefix = ['-s', self.device_serial] if self.device_serial else []
-            result = subprocess.run([adb_path] + prefix + command.split(), capture_output=True, text=True, check=check)
+            result = subprocess.run(
+                [adb_path] + prefix + args,
+                capture_output=True, text=True, check=check
+            )
             return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            # print(f"[AdbService] Error running command: {command}")
+        except subprocess.CalledProcessError:
             return None
         except FileNotFoundError:
             print("[!] Critical Error: ADB is not installed or not in your system PATH.")
             sys.exit(1)
+
+    def run_command(self, command: str, check: bool = True) -> str | None:
+        """Run an ADB command given as a shell string (split on whitespace)."""
+        return self._invoke_adb(command.split(), check=check)
 
     def is_device_connected(self):
         return self.run_command('get-state', check=False) == 'device'
@@ -223,17 +229,7 @@ class AdbService:
 
     def _run_adb(self, args: list[str]) -> str | None:
         """Run an ADB command given as a proper argument list (no string splitting)."""
-        try:
-            adb_path = os.environ.get("ADB_PATH", "adb")
-            prefix = ['-s', self.device_serial] if self.device_serial else []
-            result = subprocess.run(
-                [adb_path] + prefix + args,
-                capture_output=True, text=True, check=False
-            )
-            return result.stdout.strip()
-        except FileNotFoundError:
-            print("[!] Critical Error: ADB is not installed or not in your system PATH.")
-            sys.exit(1)
+        return self._invoke_adb(args, check=False)
 
     def type_text_human(self, text: str) -> None:
         """Types text character by character with human-like timing.

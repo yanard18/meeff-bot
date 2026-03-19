@@ -71,7 +71,7 @@ class ChatTask(Task):
             if elapsed < timeout:
                 print(f"[Chat] Waiting for reply ({elapsed:.0f}s / {timeout}s)...")
                 return
-            print("[Chat] No response in 30s — moving to next person.")
+            print(f"[Chat] No response in {timeout}s — moving to next person.")
             self._leave(ctx)
             return
 
